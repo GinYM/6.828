@@ -402,7 +402,7 @@ pte_t *
 pgdir_walk(pde_t *pgdir, const void *va, int create)
 {
 	// Fill this function in
-	pde_t dirIdx = PDX(va);
+	pte_t dirIdx = PDX(va);
 	if(pgdir[dirIdx] ==0 && create == 0){
 		return NULL;
 	}
@@ -419,8 +419,8 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 		return &pgdir[dirIdx];
 	}
 	else{
-		pde_t pgTableBase = PTE_ADDR(pgdir[dirIdx]);
-		pde_t pgTableIdx = PTX(va);
+		pte_t pgTableBase = PTE_ADDR(pgdir[dirIdx]);
+		pte_t pgTableIdx = PTX(va);
 		return KADDR(pgTableBase+pgTableIdx);
 	}
 
@@ -442,8 +442,12 @@ static void
 boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm)
 {
 	// Fill this function in
-	pde_t addr = pgdir(pgdir,va,1);
-	for(int i = 0;i<size;i++){
+	pte_t* addr;
+	for(int i = 0;i<size/PGSIZE;i++){
+		addr = pgdir_walk(pgdir,&va,1);
+		*addr = pa|perm|PTE_P;
+		va+=PGSIZE;
+		pa+=PGSIZE;
 
 	}
 }
@@ -470,13 +474,27 @@ boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm
 //   0 on success
 //   -E_NO_MEM, if page table couldn't be allocated
 //
-// Hint: The TA solution is implemented using pgdir_walk, page_remove,
+// Hint: The TA solution is implemented using pgdir_walk, page_remove, tlb_invalidate
 // and page2pa.
 //
 int
 page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 {
 	// Fill this function in
+	pte_t * addr = pgdir_walk(pgdir,va,0);
+
+	if(addr == NULL){
+		addr = pgdir_walk(pgdir,va,1);
+		if(addr == NULL){
+			return -E_NO_MEM;
+		}
+	}
+	else{
+		page_remove(pgdir,va);
+		
+	}
+	pp->pp_ref++;
+	*addr = page2pa(pp)|perm|PTE_P;
 	return 0;
 }
 
@@ -495,7 +513,21 @@ struct PageInfo *
 page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 {
 	// Fill this function in
-	return NULL;
+	
+	pte_t * addr = pgdir_walk(pgdir,va,0);
+	if(addr == NULL){
+		return NULL;
+	}
+
+	pte_t dirIdx = PDX(va);
+	if(pte_store != NULL){
+		*pte_store = addr;
+	}
+	
+	struct PageInfo* result = (struct PageInfo*) pa2page(PTE_ADDR(*addr)); 
+	return result;
+	
+	
 }
 
 //
@@ -517,6 +549,20 @@ void
 page_remove(pde_t *pgdir, void *va)
 {
 	// Fill this function in
+	pte_t **pte_store = NULL;
+	struct PageInfo* pi = page_lookup(pgdir,va,pte_store);
+	if(pi == NULL){
+		return;
+	}
+	else{
+		pi->pp_ref--;
+		if(pi->pp_ref == 0){
+			page_decref(pi);
+			tlb_invalidate(pgdir,va);
+		}
+		pte_t dirIdx = PDX(va);
+		pgdir[dirIdx] = 0;
+	}
 }
 
 //
