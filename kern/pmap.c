@@ -414,15 +414,18 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 		else{
 			pp->pp_ref++;
 		}
+
 		pgdir[dirIdx] = page2pa(pp);
+		//cprintf("pgdir: %x\n",pgdir);
+		//cprintf("kern_pgdir: %x\n",kern_pgdir[0]);
+	}
 		
-		return &pgdir[dirIdx];
-	}
-	else{
-		pte_t pgTableBase = PTE_ADDR(pgdir[dirIdx]);
-		pte_t pgTableIdx = PTX(va);
-		return KADDR(pgTableBase+pgTableIdx);
-	}
+	
+	
+	pte_t pgTableBase = PTE_ADDR(pgdir[dirIdx]);
+	pte_t pgTableIdx = PTX(va);
+	return KADDR(pgTableBase+pgTableIdx);
+	
 
 	
 }
@@ -481,20 +484,35 @@ int
 page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 {
 	// Fill this function in
-	pte_t * addr = pgdir_walk(pgdir,va,0);
+	pte_t * addr = pgdir_walk(pgdir,va,1);
+
+	//cprintf("kern_pgdir[0]: %x\n",kern_pgdir[0]);
+
+	//cprintf("Page INsert Addr: %x\n",(pte_t)addr);
 
 	if(addr == NULL){
-		addr = pgdir_walk(pgdir,va,1);
-		if(addr == NULL){
-			return -E_NO_MEM;
-		}
+		return -E_NO_MEM;
 	}
 	else{
-		page_remove(pgdir,va);
-		
+		if(PTE_ADDR(addr) != page2pa(pp)){
+			//cprintf("kern_pgdir[0]: %x\n",kern_pgdir[0]);
+			page_remove(pgdir,va);
+		}
+		else{
+			pp->pp_ref--;
+		}
 	}
+
+
+
 	pp->pp_ref++;
+	//cprintf("Physical address: %x\n",page2pa(pp));
 	*addr = page2pa(pp)|perm|PTE_P;
+	tlb_invalidate(pgdir,va);
+	//cprintf("Physical address: %x\n",*addr);
+
+
+
 	return 0;
 }
 
@@ -560,8 +578,7 @@ page_remove(pde_t *pgdir, void *va)
 			page_decref(pi);
 			tlb_invalidate(pgdir,va);
 		}
-		pte_t dirIdx = PDX(va);
-		pgdir[dirIdx] = 0;
+		**pte_store = 0;
 	}
 }
 
@@ -788,6 +805,9 @@ check_va2pa(pde_t *pgdir, uintptr_t va)
 	pte_t *p;
 
 	pgdir = &pgdir[PDX(va)];
+
+	//cprintf("check_va2pa: %x\n",!(*pgdir & PTE_P));
+
 	if (!(*pgdir & PTE_P))
 		return ~0;
 	p = (pte_t*) KADDR(PTE_ADDR(*pgdir));
@@ -796,6 +816,9 @@ check_va2pa(pde_t *pgdir, uintptr_t va)
 	return PTE_ADDR(p[PTX(va)]);
 }
 
+static void show_addr(struct PageInfo*pp){
+	cprintf("Addr is: %x\n",page2pa(pp));
+}
 
 // check page_insert, page_remove, &c
 static void
@@ -813,6 +836,10 @@ check_page(void)
 	assert((pp0 = page_alloc(0)));
 	assert((pp1 = page_alloc(0)));
 	assert((pp2 = page_alloc(0)));
+
+
+
+	//cprintf("PP0 addr: %x\n",page2pa(pp0));
 
 	assert(pp0);
 	assert(pp1 && pp1 != pp0);
@@ -834,7 +861,16 @@ check_page(void)
 	// free pp0 and try again: pp0 should be used for page table
 	page_free(pp0);
 	assert(page_insert(kern_pgdir, pp1, 0x0, PTE_W) == 0);
+
+	//cprintf("Page2pa %x\n",page2pa(pp0));
+	//cprintf("PTE ADDR: %x\n",PTE_ADDR(kern_pgdir[0]));
+
 	assert(PTE_ADDR(kern_pgdir[0]) == page2pa(pp0));
+
+
+	cprintf("PP1: %x\n",page2pa(pp1));
+	cprintf("VA2PA: %x\n",check_va2pa(kern_pgdir, 0x0));
+
 	assert(check_va2pa(kern_pgdir, 0x0) == page2pa(pp1));
 	assert(pp1->pp_ref == 1);
 	assert(pp0->pp_ref == 1);
