@@ -197,9 +197,10 @@ mem_init(void)
 	//      (ie. perm = PTE_U | PTE_P)
 	//    - pages itself -- kernel RW, user NONE
 	// Your code goes here:
-	cprintf("page is : %x\n",page2pa(pages));
-	cprintf("paddr is : %x\n",PADDR((uintptr_t *) pages));
-	boot_map_region(kern_pgdir, UPAGES, PTSIZE, PADDR(pages), PTE_U | PTE_P);
+	//cprintf("page is : %x\n",page2pa(pages));
+	//cprintf("paddr is : %x\n",PADDR((uintptr_t *) pages));
+	
+	boot_map_region(kern_pgdir, UPAGES, PTSIZE, PADDR(pages), PTE_U | PTE_P|PTE_W);
 
 	//////////////////////////////////////////////////////////////////////
 	// Use the physical memory that 'bootstack' refers to as the kernel
@@ -212,6 +213,10 @@ mem_init(void)
 	//       overwrite memory.  Known as a "guard page".
 	//     Permissions: kernel RW, user NONE
 	// Your code goes here:
+	//cprintf("pagedir[960] is: %x\n",kern_pgdir[960]);
+	boot_map_region(kern_pgdir,KSTACKTOP-KSTKSIZE,PTSIZE,PADDR(bootstack),PTE_P|PTE_W);
+	//cprintf("PERM IS: %d\n",PTE_P|PTE_W);
+	//cprintf("pagedir[960] is: %x\n",kern_pgdir[960]);
 
 	//////////////////////////////////////////////////////////////////////
 	// Map all of physical memory at KERNBASE.
@@ -221,9 +226,19 @@ mem_init(void)
 	// we just set up the mapping anyway.
 	// Permissions: kernel RW, user NONE
 	// Your code goes here:
+	//cprintf("pagedir[960] is: %x\n",kern_pgdir[960]);
+	boot_map_region(kern_pgdir,KERNBASE,(size_t)(1<<31)-KERNBASE+(size_t)(1<<31),0,PTE_P|PTE_W);
+	//cprintf("pagedir[960] is: %x\n",kern_pgdir[960]);
+
+	//cprintf("One: %x\n",KSTACKTOP-KSTKSIZE);
+	//cprintf("Two: %x\n",KERNBASE);
 
 	// Check that the initial page directory has been set up correctly.
 	check_kern_pgdir();
+
+	const int idx = 1;
+	pde_t * ad = &kern_pgdir[idx];
+	cprintf("Entry %d va: %x\n",idx,(pte_t*) KADDR(PTE_ADDR(ad)));
 
 	// Switch from the minimal entry page directory to the full kern_pgdir
 	// page table we just created.	Our instruction pointer should be
@@ -245,6 +260,9 @@ mem_init(void)
 
 	// Some more checks, only possible after kern_pgdir is installed.
 	check_page_installed_pgdir();
+
+	
+
 }
 
 // --------------------------------------------------------------
@@ -431,7 +449,7 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 			pp->pp_ref++;
 		}
 
-		pgdir[dirIdx] = page2pa(pp)|PTE_P|PTE_U;
+		pgdir[dirIdx] = page2pa(pp)|PTE_P|PTE_U|PTE_W;
 
 		//cprintf("Is zero?? %x\n",pgdir[dirIdx]);
 
@@ -490,8 +508,27 @@ boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm
 		//cprintf("boot map region: %x\n",i);
 		//cprintf("va addr: %x\n",va);
 		addr = pgdir_walk(pgdir,(void*)va,1);
+
 		//cprintf("addr %x\n",addr);
-		*addr = pa|perm|PTE_P;
+		
+		//pde_t origin = kern_pgdir[960];
+
+		*addr = pa|perm;//|PTE_P;
+
+		//pde_t after = kern_pgdir[960];
+
+		
+
+		/*
+		if(pa == 0x3ff000){
+			cprintf("Perm is: %d\n",perm);
+			cprintf("pgdir[960]is %x\n",kern_pgdir[960]);
+			cprintf("Exm?? %x\n",pa|perm);
+			cprintf("addr is %x\n",*addr);
+		}
+		*/
+
+		
 		va+=PGSIZE;
 		pa+=PGSIZE;
 
@@ -844,7 +881,12 @@ check_kern_pgdir(void)
 
 	// check phys mem
 	for (i = 0; i < npages * PGSIZE; i += PGSIZE)
+	{
+		//cprintf("idx = %d\n",i);
+		//cprintf("check : %x\n",check_va2pa(pgdir, KERNBASE + i));
 		assert(check_va2pa(pgdir, KERNBASE + i) == i);
+		
+	}
 
 	// check kernel stack
 	for (i = 0; i < KSTKSIZE; i += PGSIZE)
@@ -862,9 +904,13 @@ check_kern_pgdir(void)
 		default:
 			if (i >= PDX(KERNBASE)) {
 				assert(pgdir[i] & PTE_P);
+				//cprintf("i is %d dir is %x\n",i,pgdir[i]);
 				assert(pgdir[i] & PTE_W);
 			} else
+			{
+				//cprintf("I is: %d\n",i);
 				assert(pgdir[i] == 0);
+			}
 			break;
 		}
 	}
@@ -883,7 +929,7 @@ check_va2pa(pde_t *pgdir, uintptr_t va)
 
 	pgdir = &pgdir[PDX(va)];
 
-	cprintf("check_va2pa original: %x\n",*pgdir);
+	//cprintf("check_va2pa original: %x\n",*pgdir);
 	//cprintf("check_va2pa: %x\n",!(*pgdir & PTE_P));
 
 	if (!(*pgdir & PTE_P))
@@ -896,6 +942,8 @@ check_va2pa(pde_t *pgdir, uintptr_t va)
 
 	if (!(p[PTX(va)] & PTE_P))
 		return ~0;
+
+	//cprintf("Pte addr: %x\n",p[PTX(va)]);
 	return PTE_ADDR(p[PTX(va)]);
 }
 
