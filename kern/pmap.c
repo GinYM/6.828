@@ -197,6 +197,9 @@ mem_init(void)
 	//      (ie. perm = PTE_U | PTE_P)
 	//    - pages itself -- kernel RW, user NONE
 	// Your code goes here:
+	cprintf("page is : %x\n",page2pa(pages));
+	cprintf("paddr is : %x\n",PADDR((uintptr_t *) pages));
+	boot_map_region(kern_pgdir, UPAGES, PTSIZE, PADDR(pages), PTE_U | PTE_P);
 
 	//////////////////////////////////////////////////////////////////////
 	// Use the physical memory that 'bootstack' refers to as the kernel
@@ -330,7 +333,7 @@ page_alloc(int alloc_flags)
 	// Fill this function in
 	struct PageInfo *pp = page_free_list;
 	
-	cprintf("addr: %x\n",pp);
+	//cprintf("addr: %x\n",pp);
 
 	if(pp == NULL)
 		return NULL;
@@ -446,6 +449,7 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 	pte_t* pgTableBase = (pte_t*)KADDR(PTE_ADDR(*newPgDir));
 
 
+	//cprintf("va is: %x\n",va);
 
 	pte_t pgTableIdx = PTX(va);
 	//cprintf("pgTableIdx: %d\n",pgTableIdx);
@@ -458,6 +462,7 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 
 	//cprintf("Is zero?? %x\n",pgdir[dirIdx]);
 
+	//cprintf("base: %x\n",pgTableBase);
 
 	return &pgTableBase[pgTableIdx];
 	
@@ -482,7 +487,10 @@ boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm
 	// Fill this function in
 	pte_t* addr;
 	for(int i = 0;i<size/PGSIZE;i++){
-		addr = pgdir_walk(pgdir,&va,1);
+		//cprintf("boot map region: %x\n",i);
+		//cprintf("va addr: %x\n",va);
+		addr = pgdir_walk(pgdir,(void*)va,1);
+		//cprintf("addr %x\n",addr);
 		*addr = pa|perm|PTE_P;
 		va+=PGSIZE;
 		pa+=PGSIZE;
@@ -553,9 +561,9 @@ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 	//cprintf("Physical address: %x\n",page2pa(pp));
 	*addr = page2pa(pp)|perm|PTE_P;
 	tlb_invalidate(pgdir,va);
-	cprintf("The addr is :%x\n",addr);
-	cprintf("KEN ADDR: %x\n",kern_pgdir);
-	cprintf("Physical address: %x\n",*addr);
+	//cprintf("The addr is :%x\n",addr);
+	//cprintf("KEN ADDR: %x\n",kern_pgdir);
+	//cprintf("Physical address: %x\n",*addr);
 
 
 
@@ -622,11 +630,11 @@ page_remove(pde_t *pgdir, void *va)
 	// Fill this function in
 	pte_t * addr = pgdir_walk(pgdir,va,0);
 	pte_t ** pte_store = &addr;
-	cprintf("Continue: !!!\n");
+	//cprintf("Continue: !!!\n");
 	struct PageInfo* pi = page_lookup(pgdir,va,pte_store);
 
-	cprintf("ADDR !!!! remove: %x\n",page2pa(pi));
-	cprintf("PageInfo: %x\n",pi->pp_ref);
+	//cprintf("ADDR !!!! remove: %x\n",page2pa(pi));
+	//cprintf("PageInfo: %x\n",pi->pp_ref);
 
 	if(pi == NULL){
 		return;
@@ -641,9 +649,9 @@ page_remove(pde_t *pgdir, void *va)
 			tlb_invalidate(pgdir,va);
 		}
 		//cprintf("Page free lis -== %x\n",page_free_list); 
-		cprintf("pte_store addr: %x\n",page2pa((struct PageInfo*)(*pte_store)));
+		//cprintf("pte_store addr: %x\n",page2pa((struct PageInfo*)(*pte_store)));
 		**pte_store = 0;
-		cprintf("Here!!!!\n");
+		//cprintf("Here!!!!\n");
 		//cprintf("Page free lis -== %x\n",page_free_list);
 	}
 }
@@ -828,7 +836,10 @@ check_kern_pgdir(void)
 	// check pages array
 	n = ROUNDUP(npages*sizeof(struct PageInfo), PGSIZE);
 	for (i = 0; i < n; i += PGSIZE)
+	{
+		//cprintf("check %x\n",check_va2pa(pgdir, UPAGES + i));
 		assert(check_va2pa(pgdir, UPAGES + i) == PADDR(pages) + i);
+	}
 
 
 	// check phys mem
@@ -879,9 +890,9 @@ check_va2pa(pde_t *pgdir, uintptr_t va)
 		return ~0;
 	p = (pte_t*) KADDR(PTE_ADDR(*pgdir)); //KADDR phy to virtual address
 
-	cprintf("P base: %x\n",p);
+	//cprintf("P base: %x\n",p);
 	//cprintf("VA: %x\n",PTX(va));
-	cprintf("pPTX: %x\n",p[PTX(va)]);
+	//cprintf("pPTX: %x\n",p[PTX(va)]);
 
 	if (!(p[PTX(va)] & PTE_P))
 		return ~0;
@@ -937,7 +948,7 @@ check_page(void)
 
 	assert(page_insert(kern_pgdir, pp1, 0x0, PTE_W) == 0);
 
-	cprintf("Page free list %d\n",page_free_list);
+	//cprintf("Page free list %d\n",page_free_list);
 
 	assert(!page_alloc(0));
 
@@ -969,7 +980,7 @@ check_page(void)
 	assert(pp2->pp_ref == 1);
 
 	// should be no free memory
-	cprintf("Page free list final : %x\n",page_free_list);
+	//cprintf("Page free list final : %x\n",page_free_list);
 	assert(!page_alloc(0));
 
 	// should be able to map pp2 at PGSIZE because it's already there
@@ -995,10 +1006,10 @@ check_page(void)
 	assert(pp2->pp_ref == 1);
 	assert(*pgdir_walk(kern_pgdir, (void*) PGSIZE, 0) & PTE_U);
 
-	cprintf("kern_pgdir[0]: %x\n",kern_pgdir[0]);
-	cprintf("kern_pgdir[0]: %d\n",kern_pgdir[0] & PTE_U);
+	//cprintf("kern_pgdir[0]: %x\n",kern_pgdir[0]);
+	//cprintf("kern_pgdir[0]: %d\n",kern_pgdir[0] & PTE_U);
 
-	cprintf("kern_pgdir[1]: %d\n",kern_pgdir[1] & PTE_U);
+	//cprintf("kern_pgdir[1]: %d\n",kern_pgdir[1] & PTE_U);
 
 	assert(kern_pgdir[0] & PTE_U);
 
@@ -1025,7 +1036,7 @@ check_page(void)
 	assert(pp2->pp_ref == 0);
 
 	// pp2 should be returned by page_alloc
-	cprintf("pp is: %x\n",pp2);
+	//cprintf("pp is: %x\n",pp2);
 	assert((pp = page_alloc(0)) && pp == pp2);
 
 	// unmapping pp1 at 0 should keep pp1 at PGSIZE
