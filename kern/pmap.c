@@ -236,9 +236,9 @@ mem_init(void)
 	// Check that the initial page directory has been set up correctly.
 	check_kern_pgdir();
 
-	const int idx = 1;
-	pde_t * ad = &kern_pgdir[idx];
-	cprintf("Entry %d va: %x\n",idx,(pte_t*) KADDR(PTE_ADDR(ad)));
+	//const int idx = 1;
+	//pde_t * ad = &kern_pgdir[idx];
+	//cprintf("Entry %d va: %x\n",idx,(pte_t*) KADDR(PTE_ADDR(ad)));
 
 	// Switch from the minimal entry page directory to the full kern_pgdir
 	// page table we just created.	Our instruction pointer should be
