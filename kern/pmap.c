@@ -161,18 +161,14 @@ mem_init(void)
 	// array.  'npages' is the number of physical pages in memory.  Use memset
 	// to initialize all fields of each struct PageInfo to 0.
 	// Your code goes here:
-
-	//cprintf("Mem Init Here!!!!!\n");
-	pages = boot_alloc(npages*sizeof(struct PageInfo));	
-
-	//cprintf("PageInfo size: %d PageSize: %d",sizeof(struct PageInfo),PGSIZE);
-
-	
+	pages = boot_alloc(npages*sizeof(struct PageInfo));		
 	memset(pages,0,npages*sizeof(struct PageInfo));
 
 	//////////////////////////////////////////////////////////////////////
 	// Make 'envs' point to an array of size 'NENV' of 'struct Env'.
 	// LAB 3: Your code here.
+	envs = (struct Env*)boot_alloc(NENV*sizeof(struct Env));
+	memset(envs,0,NENV*sizeof(struct Env));
 
 	//////////////////////////////////////////////////////////////////////
 	// Now that we've allocated the initial kernel data structures, we set
@@ -214,6 +210,7 @@ mem_init(void)
 	//    - the new image at UENVS  -- kernel R, user R
 	//    - envs itself -- kernel RW, user NONE
 	// LAB 3: Your code here.
+	boot_map_region(kern_pgdir,UENVS,NENV*PGSIZE,PADDR(envs),PTE_U|PTE_P);
 
 	//////////////////////////////////////////////////////////////////////
 	// Use the physical memory that 'bootstack' refers to as the kernel
@@ -226,10 +223,9 @@ mem_init(void)
 	//       overwrite memory.  Known as a "guard page".
 	//     Permissions: kernel RW, user NONE
 	// Your code goes here:
-	//cprintf("pagedir[960] is: %x\n",kern_pgdir[960]);
+	
 	boot_map_region(kern_pgdir,KSTACKTOP-KSTKSIZE,PTSIZE,PADDR(bootstack),PTE_P|PTE_W);
-	//cprintf("PERM IS: %d\n",PTE_P|PTE_W);
-	//cprintf("pagedir[960] is: %x\n",kern_pgdir[960]);
+	
 
 	//////////////////////////////////////////////////////////////////////
 	// Map all of physical memory at KERNBASE.
@@ -239,12 +235,11 @@ mem_init(void)
 	// we just set up the mapping anyway.
 	// Permissions: kernel RW, user NONE
 	// Your code goes here:
-	//cprintf("pagedir[960] is: %x\n",kern_pgdir[960]);
+	
 	boot_map_region(kern_pgdir,KERNBASE,(size_t)(1<<31)-KERNBASE+(size_t)(1<<31),0,PTE_P|PTE_W);
-	//cprintf("pagedir[960] is: %x\n",kern_pgdir[960]);
+	
 
-	//cprintf("One: %x\n",KSTACKTOP-KSTKSIZE);
-	//cprintf("Two: %x\n",KERNBASE);
+	
 
 	// Check that the initial page directory has been set up correctly.
 	check_kern_pgdir();
@@ -938,8 +933,11 @@ check_kern_pgdir(void)
 
 	// check envs array (new test for lab 3)
 	n = ROUNDUP(NENV*sizeof(struct Env), PGSIZE);
-	for (i = 0; i < n; i += PGSIZE)
+	for (i = 0; i < n; i += PGSIZE){
+		//cprintf("I is %d\n",i);
+		//cprintf("result is %x\n",check_va2pa(pgdir, UENVS + i));
 		assert(check_va2pa(pgdir, UENVS + i) == PADDR(envs) + i);
+	}
 
 	// check phys mem
 	for (i = 0; i < npages * PGSIZE; i += PGSIZE)
@@ -990,8 +988,10 @@ check_va2pa(pde_t *pgdir, uintptr_t va)
 {
 	pte_t *p;
 
-	pgdir = &pgdir[PDX(va)];
+	//cprintf("the addr of pgdir is : %x\n",pgdir[PDX(va)]);
 
+	pgdir = &pgdir[PDX(va)];
+	//cprintf("check original: %x\n",&pgdir[PDX(va)]);
 	//cprintf("check_va2pa original: %x\n",*pgdir);
 	//cprintf("check_va2pa: %x\n",!(*pgdir & PTE_P));
 

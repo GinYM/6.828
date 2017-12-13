@@ -148,15 +148,8 @@ monitor(struct Trapframe *tf)
 //<<<<<<< HEAD
 	if (tf != NULL)
 		print_trapframe(tf);
-//=======
-	//cprintf("\033[32;1mHello World\033[0m\n");
 
-	//unsigned int i = 0x00646c72;
-    //cprintf("H%x Wo%s\n", 57616, &i);
 
-    //cprintf("x=%d y=%d", 3);
-/*
->>>>>>> lab2
 
 	while (1) {
 		buf = readline("K> ");
@@ -164,5 +157,5 @@ monitor(struct Trapframe *tf)
 			if (runcmd(buf, tf) < 0)
 				break;
 	}
-	*/
+	
 }
