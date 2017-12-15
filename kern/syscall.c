@@ -19,6 +19,8 @@ sys_cputs(const char *s, size_t len)
 {
 	// Check that the user has permission to read memory [s, s+len).
 	// Destroy the environment if not.
+	user_mem_assert(curenv,(void*)s,len,PTE_U);
+	
 
 	// LAB 3: Your code here.
 

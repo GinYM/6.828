@@ -737,6 +737,50 @@ int
 user_mem_check(struct Env *env, const void *va, size_t len, int perm)
 {
 	// LAB 3: Your code here.
+	void*start,*end;
+
+	cprintf("Initial addr: %x\n",va);
+
+	start = (void*)ROUNDDOWN((uint32_t)va,PGSIZE);
+	end = (void*) ROUNDUP((uint32_t)(va+len),PGSIZE);
+	cprintf("Start addr %x\n",start);
+	cprintf("End addr %x\n",end);
+	pte_t * addr;
+
+	void* start_nest = 0;
+	void* end_nest = 0;
+	for(void*i = (void*)(start);i<end;i+=PGSIZE){
+		addr = pgdir_walk(env->env_pgdir,i,0);
+
+		//cprintf("PERM IS %x\n",perm|PTE_P);
+		//cprintf("The addr is %x\n",*addr);
+
+		if(addr == NULL || (uintptr_t)i>=ULIM || (((*addr)&(perm|PTE_P))^(perm|PTE_P)) ){
+			//cprintf("I is !!!! : %x\n",(uintptr_t)i);
+			if(i == start){
+				start_nest = (void*)va;
+				end_nest = end;
+			}
+			else if(i == start+PGSIZE ){
+				start_nest = (void*)va;
+				end_nest = i;
+			}
+			else{
+				start_nest = i- PGSIZE;
+				end_nest = i;
+			}
+			cprintf("Start nest is: %x\n",start_nest);
+			for(void*ii = start_nest;ii<=end_nest;ii++){
+				addr = pgdir_walk(env->env_pgdir,ii,0);
+				if(addr == NULL || (uintptr_t)i>=ULIM || (((*addr)&(perm|PTE_P))^(perm|PTE_P))){
+					user_mem_check_addr = (uintptr_t)ii;
+					return -E_FAULT;
+				}
+			}
+			//user_mem_check_addr = (uintptr_t)i;
+			//return -E_FAULT;
+		}
+	}
 
 	return 0;
 }
