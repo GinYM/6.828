@@ -344,10 +344,15 @@ page_init(void)
 	int up =(int)(boot_alloc(0));
 	//cprintf("UP: %x",up);
 
-
-
+	cprintf("Number of pages: %d\n",npages);
+	cprintf("Kernel addr: %x\n",(size_t)(KADDR(MPENTRY_PADDR)));
+	cprintf("The addr for mp is: %d\n",(size_t)(KADDR(MPENTRY_PADDR))/PGSIZE);
 	for (i = 0; i < npages; i++) {
-		if(i == 0){
+		if( page2pa(&pages[i]) == MPENTRY_PADDR){
+			pages[i].pp_ref = 1;
+			pages[i].pp_link = NULL;
+		}
+		else if(i == 0){
 			pages[i].pp_ref = 1;
 			pages[i].pp_link = NULL;
 		}
@@ -779,7 +784,14 @@ mmio_map_region(physaddr_t pa, size_t size)
 	// Hint: The staff solution uses boot_map_region.
 	//
 	// Your code here:
-	panic("mmio_map_region not implemented");
+	//panic("mmio_map_region not implemented");
+	int perm = PTE_PCD|PTE_PWT|PTE_W;
+	if(base+ROUNDUP(size,PGSIZE) >= MMIOLIM){
+		panic("mmio_map_region not enough memory");
+	}
+	boot_map_region(kern_pgdir, base, ROUNDUP(size,PGSIZE), pa, perm);
+	return &base;
+
 }
 
 static uintptr_t user_mem_check_addr;
