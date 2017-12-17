@@ -136,7 +136,7 @@ trap_init_percpu(void)
 	// The example code here sets up the Task State Segment (TSS) and
 	// the TSS descriptor for CPU 0. But it is incorrect if we are
 	// running on other CPUs because each CPU has its own kernel stack.
-	// Fix the code so that it works for all CPUs.
+	// Fix the code so that it works for all CPUsg.
 	//
 	// Hints:
 	//   - The macro "thiscpu" always refers to the current CPU's

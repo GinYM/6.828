@@ -226,7 +226,7 @@ mem_init(void)
 	//     Permissions: kernel RW, user NONE
 	// Your code goes here:
 	
-	boot_map_region(kern_pgdir,KSTACKTOP-KSTKSIZE,PTSIZE,PADDR(bootstack),PTE_P|PTE_W);
+	boot_map_region(kern_pgdir,KSTACKTOP-KSTKSIZE,KSTKSIZE,PADDR(bootstack),PTE_P|PTE_W);
 	
 
 	//////////////////////////////////////////////////////////////////////
@@ -300,6 +300,11 @@ mem_init_mp(void)
 	//     Permissions: kernel RW, user NONE
 	//
 	// LAB 4: Your code here:
+	uintptr_t kstacktop_i;
+	for(int i = 0;i<NCPU;i++){
+		kstacktop_i = KSTACKTOP - i * (KSTKSIZE + KSTKGAP);
+		boot_map_region(kern_pgdir, kstacktop_i - KSTKSIZE, KSTKSIZE,PADDR(percpu_kstacks[i]), PTE_W|PTE_P);
+	}
 
 }
 
@@ -785,12 +790,14 @@ mmio_map_region(physaddr_t pa, size_t size)
 	//
 	// Your code here:
 	//panic("mmio_map_region not implemented");
-	int perm = PTE_PCD|PTE_PWT|PTE_W;
+	int perm = PTE_PCD|PTE_PWT|PTE_W|PTE_P;
 	if(base+ROUNDUP(size,PGSIZE) >= MMIOLIM){
 		panic("mmio_map_region not enough memory");
 	}
 	boot_map_region(kern_pgdir, base, ROUNDUP(size,PGSIZE), pa, perm);
-	return &base;
+	void* b = (void*)base;
+	base += ROUNDUP(size,PGSIZE);
+	return (void*)b;
 
 }
 
@@ -1347,6 +1354,9 @@ check_page(void)
 	mm1 = (uintptr_t) mmio_map_region(0, 4097);
 	mm2 = (uintptr_t) mmio_map_region(0, 4096);
 	// check that they're in the right region
+	//cprintf("mm1 addr is %x\n",mm1);
+	//cprintf("mm2 addr is: %x\n",mm2);
+	//cprintf("MMIOLIM addr is %x\n",MMIOLIM);
 	assert(mm1 >= MMIOBASE && mm1 + 8096 < MMIOLIM);
 	assert(mm2 >= MMIOBASE && mm2 + 8096 < MMIOLIM);
 	// check that they're page-aligned
@@ -1354,6 +1364,7 @@ check_page(void)
 	// check that they don't overlap
 	assert(mm1 + 8096 <= mm2);
 	// check page mappings
+	//cprintf("kern/-pgdir_walk mm1 :%x\n",check_va2pa(kern_pgdir, mm1));
 	assert(check_va2pa(kern_pgdir, mm1) == 0);
 	assert(check_va2pa(kern_pgdir, mm1+PGSIZE) == PGSIZE);
 	assert(check_va2pa(kern_pgdir, mm2) == 0);
