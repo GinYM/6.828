@@ -354,6 +354,9 @@ page_init(void)
 	cprintf("The addr for mp is: %d\n",(size_t)(KADDR(MPENTRY_PADDR))/PGSIZE);
 	for (i = 0; i < npages; i++) {
 		if( page2pa(&pages[i]) == MPENTRY_PADDR){
+			//if(i!=npages-1){
+			//	pages[i+1].pp_link = pages[i].pp_link;
+			//}
 			pages[i].pp_ref = 1;
 			pages[i].pp_link = NULL;
 		}
