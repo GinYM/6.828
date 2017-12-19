@@ -158,15 +158,7 @@ trap_init_percpu(void)
 	//
 	// LAB 4: Your code here:
 
-	// Setup a TSS so that we get the right stack
-	// when we trap to the kernel.
 	int i = cpunum();
-	//ts.ts_esp0 = KSTACKTOP;
-	//ts.ts_ss0 = GD_KD;
-	//ts.ts_iomb = sizeof(struct Taskstate);
-	//uintptr_t kstacktop_i;
-	//kstacktop_i = KSTACKTOP - i * (KSTKSIZE + KSTKGAP);
-
 	thiscpu->cpu_ts.ts_esp0	= (uintptr_t)percpu_kstacks[i];
 	thiscpu->cpu_ts.ts_ss0 = GD_KD;
 
@@ -298,6 +290,7 @@ trap(struct Trapframe *tf)
 		// Acquire the big kernel lock before doing any
 		// serious kernel work.
 		// LAB 4: Your code here.
+		lock_kernel();
 		assert(curenv);
 
 		// Garbage collect if current enviroment is a zombie

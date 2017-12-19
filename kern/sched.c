@@ -29,6 +29,45 @@ sched_yield(void)
 	// below to halt the cpu.
 
 	// LAB 4: Your code here.
+	int cur_env_id,next_env_id;
+	//bool isInitial = false;
+	bool isFind =false;
+
+	if(curenv == NULL){
+		//cprintf("Curr is NULL !!!!! \n");
+		//isInitial = true;
+		cur_env_id = 0;
+		next_env_id	= 0;
+		if(envs[next_env_id].env_status == ENV_RUNNABLE){
+			//cprintf("Current ID: %d\n",cur_env_id);
+			//cprintf("Next ID: %d\n",next_env_id);
+			
+			env_run(&envs[next_env_id]);
+			return;
+		}
+		next_env_id	= (next_env_id+1)%NENV;
+	}
+	else{
+
+		cur_env_id = ENVX(curenv->env_id);
+		//cprintf("Cur id %d\n",cur_env_id);
+		next_env_id	= (cur_env_id + 1)%NENV;
+	}
+	
+	while(next_env_id!=cur_env_id){
+		if(envs[next_env_id].env_status == ENV_RUNNABLE){
+			//cprintf("Next nev id is :%d\n",next_env_id);
+			
+			env_run(&envs[next_env_id]);
+			return;
+		}
+		next_env_id = (next_env_id+1)%NENV;
+	}
+
+	if(curenv!=NULL && curenv->env_status == ENV_RUNNING){
+		env_run(curenv);
+		return;
+	}
 
 	// sched_halt never returns
 	sched_halt();
