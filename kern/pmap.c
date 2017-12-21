@@ -686,9 +686,9 @@ page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 	}
 
 	pte_t dirIdx = PDX(va);
-	//if(pte_store != NULL){
+	if(pte_store != NULL){
 		*pte_store = addr;
-	//}
+	}
 
 	//cprintf("ADDR in look up %x\n",addr);
 	
