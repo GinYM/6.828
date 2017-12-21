@@ -92,13 +92,15 @@ sys_exofork(void)
 		return e;
 	}
 	cprintf("Parent id: %d\n",curenv->env_id);
+	cprintf("Child id: %d\n",newenv_store->env_id);
 	newenv_store->env_status = ENV_NOT_RUNNABLE;
 	newenv_store->env_tf = curenv->env_tf;
 	newenv_store->env_tf.tf_regs.reg_eax = 0;
+	curenv->env_tf.tf_regs.reg_eax = newenv_store->env_id;
+	
+	//cprintf("The result should be return is %d\n",curenv->env);
 	return newenv_store->env_id;
 	
-	
-
 	//panic("sys_exofork not implemented");
 }
 
@@ -112,6 +114,7 @@ sys_exofork(void)
 static int
 sys_env_set_status(envid_t envid, int status)
 {
+	//cprintf("Here!!\n");
 	// Hint: Use the 'envid2env' function from kern/env.c to translate an
 	// envid to a struct Env.
 	// You should set envid2env's third argument to 1, which will
@@ -206,7 +209,7 @@ sys_page_alloc(envid_t envid, void *va, int perm)
 		page_free(pp);
 		return result;
 	}
-	//cprintf("Success!\n");
+	cprintf("Success!\n");
 	return 0;
 
 	//panic("sys_page_alloc not implemented");
@@ -240,6 +243,7 @@ sys_page_map(envid_t srcenvid, void *srcva,
 	//   check the current permissions on the page.
 
 	// LAB 4: Your code here.
+	//cprintf("Here!!!!!!\n");
 	struct Env *src_env,*dst_env;
 	int err_src = envid2env(srcenvid,&src_env,1);
 	int err_dst = envid2env(dstenvid,&dst_env,1);

@@ -65,7 +65,7 @@ TRAPHANDLER(t_gpflt,T_GPFLT)
 TRAPHANDLER(t_pgflt,T_PGFLT) 
 /* #define T_RES    15 */	// reserved
 TRAPHANDLER_NOEC(t_fperr,T_FPERR)
-TRAPHANDLER(t_align,T_ALIGN)
+TRAPHANDLER_NOEC(t_align,T_ALIGN)
 TRAPHANDLER_NOEC(t_mchk,T_MCHK)
 TRAPHANDLER_NOEC(t_simderr,T_SIMDERR) 
 
@@ -89,9 +89,11 @@ _alltraps:
 	pushl %ds
 	pushl %es
 	pushal
-	movw $(GD_KD),%ax
+	movw $(GD_KD),%eax
 	movw %ax,%ds
 	movw %ax,%es
 	pushl %esp
 	call trap
+
+
 

@@ -27,6 +27,7 @@ duppage(envid_t dstenv, void *addr)
 {
 	int r;
 	cprintf("Start!!!\n");
+	cprintf("The addr of dstenv is %d\n",dstenv);
 
 	// This is NOT what you should do in your fork.
 	if ((r = sys_page_alloc(dstenv, addr, PTE_P|PTE_U|PTE_W)) < 0){

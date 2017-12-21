@@ -65,31 +65,7 @@ static const char *trapname(int trapno)
 	return "(unknown trap)";
 }
 
-extern void t_divide();
-extern void t_debug();
-extern void t_nmi();
-extern void t_brkpt();
-extern void t_oflow();
-extern void t_bound();
-extern void t_illop();
-extern void t_device();
-extern void t_dblflt();
-extern void t_tss();
-extern void t_segnp();
-extern void t_stack();
-extern void t_gpflt();
-extern void t_pgflt();
-extern void t_fperr();
-extern void t_align();
-extern void t_mchk();
-extern void t_simderr();
-extern void t_syscall();
-extern void irq_timer();
-extern void irq_kbd();
-extern void irq_serial();
-extern void irq_spurious();
-extern void irq_ide();
-extern void irq_error(); 
+
 
 
 void
@@ -98,6 +74,31 @@ trap_init(void)
 	extern struct Segdesc gdt[];
 
 	// LAB 3: Your code here.
+	extern void t_divide();
+	extern void t_debug();
+	extern void t_nmi();
+	extern void t_brkpt();
+	extern void t_oflow();
+	extern void t_bound();
+	extern void t_illop();
+	extern void t_device();
+	extern void t_dblflt();
+	extern void t_tss();
+	extern void t_segnp();
+	extern void t_stack();
+	extern void t_gpflt();
+	extern void t_pgflt();
+	extern void t_fperr();
+	extern void t_align();
+	extern void t_mchk();
+	extern void t_simderr();
+	extern void t_syscall();
+	extern void irq_timer();
+	extern void irq_kbd();
+	extern void irq_serial();
+	extern void irq_spurious();
+	extern void irq_ide();
+	extern void irq_error(); 
 	
 	SETGATE(idt[T_DIVIDE], 0, GD_KT, t_divide, 0);
 	SETGATE(idt[T_DEBUG], 0, GD_KT, t_debug, 0);
@@ -228,6 +229,7 @@ trap_dispatch(struct Trapframe *tf)
 {
 	// Handle processor exceptions.
 	// LAB 3: Your code here.
+	//uint32_t eax;
 	switch(tf->tf_trapno){
 		case T_PGFLT:
 			page_fault_handler(tf);
@@ -237,7 +239,9 @@ trap_dispatch(struct Trapframe *tf)
 			return;
 		case T_SYSCALL:
 			//DX, CX, BX, DI, SI
-			syscall(tf->tf_regs.reg_eax,tf->tf_regs.reg_edx,tf->tf_regs.reg_ecx,tf->tf_regs.reg_ebx,tf->tf_regs.reg_edi,tf->tf_regs.reg_esi);
+			//eax = tf->tf_regs.reg_eax;
+			tf->tf_regs.reg_eax = syscall(tf->tf_regs.reg_eax,tf->tf_regs.reg_edx,tf->tf_regs.reg_ecx,tf->tf_regs.reg_ebx,tf->tf_regs.reg_edi,tf->tf_regs.reg_esi);
+			//tf->tf_regs.reg_eax = eax;
 			return;
 	}
 
