@@ -149,7 +149,16 @@ static int
 sys_env_set_pgfault_upcall(envid_t envid, void *func)
 {
 	// LAB 4: Your code here.
-	panic("sys_env_set_pgfault_upcall not implemented");
+	//panic("sys_env_set_pgfault_upcall not implemented");
+	struct Env* newenv_store;
+	int err = envid2env(envid,&newenv_store,1);
+	if(err < 0){
+		return err;
+	}
+	
+	newenv_store->env_pgfault_upcall = func;
+
+	return 0;
 }
 
 // Allocate a page of memory and map it at 'va' with permission
