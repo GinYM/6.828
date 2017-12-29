@@ -230,6 +230,7 @@ trap_dispatch(struct Trapframe *tf)
 	// Handle processor exceptions.
 	// LAB 3: Your code here.
 	//uint32_t eax;
+	//cprintf("trapno is %d\n",tf->tf_trapno);
 	switch(tf->tf_trapno){
 		case T_PGFLT:
 			page_fault_handler(tf);
@@ -378,19 +379,21 @@ page_fault_handler(struct Trapframe *tf)
 
 	// LAB 4: Your code here.
 	struct UTrapframe *utf;
-	int perm = PTE_W|PTE_U;
+	int perm = PTE_W|PTE_U|PTE_P;
 	int result  = 0;
 	uintptr_t utf_addr;
+	//cprintf("curenv _pgfault_upcall: %x\n",curenv->env_pgfault_upcall);
 	if(curenv->env_pgfault_upcall != NULL && tf!=NULL){
+		//cprintf("Here!\n");
 
 		//sys_page_alloc(curenv->env_id,(void*)UXSTACKTOP,perm);
-
-		if(tf->tf_esp>=UXSTACKTOP-PGSIZE && tf->tf_esp <= UXSTACKTOP-1){
-			utf_addr = (tf->tf_esp-sizeof(struct UTrapframe)-sizeof(uint32_t));
+		//cprintf("Sizeof 32_t is %d\n",sizeof(uint32_t));
+		if(tf->tf_esp>=UXSTACKTOP-PGSIZE && (tf->tf_esp <= UXSTACKTOP-1)){
+			utf_addr = (tf->tf_esp-sizeof(struct UTrapframe)-4);
 			//utf = (struct UTrapframe*)(tf->tf_esp-sizeof(struct UTrapframe)-sizeof(uint32_t));
 		}
 		else{
-			utf_addr = UXSTACKTOP-sizeof(struct UTrapframe)-sizeof(uint32_t);
+			utf_addr = UXSTACKTOP-sizeof(struct UTrapframe);
 			//utf = (struct UTrapframe*)(UXSTACKTOP-sizeof(struct UTrapframe));
 			//user_mem_assert(curenv, (void*)(utf), sizeof(struct UTrapframe), perm);
 			//result = sys_page_alloc(curenv->env_id, (void*)UXSTACKTOP, perm);
@@ -398,20 +401,30 @@ page_fault_handler(struct Trapframe *tf)
 		user_mem_assert(curenv, (void*)utf_addr, sizeof(struct UTrapframe), perm);
 		utf = (struct UTrapframe*)utf_addr;
 
+		//cprintf("Come here 1 \n");
+
 		//sys_page_alloc(envid_t envid, void *va, int perm)		
 		//struct UTrapframe *utf = (struct UTrapframe*)UXSTACKTOP;
-		utf->utf_esp = tf->tf_esp;
-		utf->utf_eflags = tf->tf_eflags;
-		utf->utf_eip = tf->tf_eip;
-		utf->utf_regs = tf->tf_regs;
-		utf->utf_err = tf->tf_err;
+		
+		
+		
+		
+		
 		utf->utf_fault_va = fault_va;
+		utf->utf_err = tf->tf_err;
+		utf->utf_regs = tf->tf_regs;
+		utf->utf_eip = tf->tf_eip;
+		utf->utf_eflags = tf->tf_eflags;
+		utf->utf_esp = tf->tf_esp;
 		//((void*)_pgfault_upcall)(curenv->env_pgfault_upcall);
 		
-		tf->tf_es = utf_addr;
+		tf->tf_esp = utf_addr;
 		tf->tf_eip = (uintptr_t)curenv->env_pgfault_upcall;
 
+		//cprintf("Come here 2 \n");
+
 		env_run(curenv);
+		//cprintf("Come here 3 \n");
 	}
 
 	// Destroy the environment that caused the fault.

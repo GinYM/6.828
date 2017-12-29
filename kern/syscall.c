@@ -148,13 +148,18 @@ sys_env_set_status(envid_t envid, int status)
 static int
 sys_env_set_pgfault_upcall(envid_t envid, void *func)
 {
+	//cprintf("Here!");
 	// LAB 4: Your code here.
 	//panic("sys_env_set_pgfault_upcall not implemented");
 	struct Env* newenv_store;
 	int err = envid2env(envid,&newenv_store,1);
+	//cprintf("err is %d\n",err);
 	if(err < 0){
 		return err;
 	}
+
+	//cprintf("The envid is %d\n",envid);
+	//cprintf("The addr is %x\n",func);
 	
 	newenv_store->env_pgfault_upcall = func;
 
@@ -191,22 +196,27 @@ sys_page_alloc(envid_t envid, void *va, int perm)
 	//cprintf("Here!\n");
 	//struct Env tmp;
 	struct Env *newenv_store ;//= &tmp;
-	cprintf("ENVID :%d\n",envid);
+	//cprintf("ENVID :%d\n",envid);
 	int err = envid2env(envid,&newenv_store,1);
-	cprintf("The err is %d\n",err);
+	//cprintf("The err is %d\n",err);
 	if(err<0){
 		return err;
 	}
 
 	if((uint32_t)va>=UTOP || (uint32_t)va%PGSIZE!=0){
+		//cprintf("111\n");
 		return -E_INVAL;
 	}
 	if((perm&(PTE_U|PTE_P)) != (PTE_U|PTE_P)){
+		//cprintf("222\n");
 		return -E_INVAL;
 	}
 	if(perm&(~(PTE_U|PTE_P|PTE_AVAIL|PTE_W))){
+		//cprintf("333\n");
 		return -E_INVAL;
 	}
+
+	//cprintf("Here!\n");
 
 	struct PageInfo *pp = page_alloc(ALLOC_ZERO);
 	if(pp == NULL){
@@ -218,7 +228,7 @@ sys_page_alloc(envid_t envid, void *va, int perm)
 		page_free(pp);
 		return result;
 	}
-	cprintf("Success!\n");
+	//cprintf("Success!\n");
 	return 0;
 
 	//panic("sys_page_alloc not implemented");
@@ -403,6 +413,7 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 	//panic("syscall not implemented");
 	int e = 0;
 	//int return_value;
+	//cprintf("Syscall is %d\n",syscallno);
 
 	switch (syscallno) {
 	case SYS_cputs:
@@ -445,6 +456,9 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 	case SYS_env_set_status:
 		cprintf("sys env set status\n");
 		return sys_env_set_status((envid_t)a1, (int)a2);
+
+	case SYS_env_set_pgfault_upcall:
+		return sys_env_set_pgfault_upcall((envid_t)(a1), (void *)a2);
 
 	default:
 		return -E_INVAL;
