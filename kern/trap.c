@@ -408,7 +408,7 @@ page_fault_handler(struct Trapframe *tf)
 		
 		
 		
-		
+		//cprintf("utf err :%d\n",tf->tf_err);
 		
 		utf->utf_fault_va = fault_va;
 		utf->utf_err = tf->tf_err;
@@ -417,6 +417,8 @@ page_fault_handler(struct Trapframe *tf)
 		utf->utf_eflags = tf->tf_eflags;
 		utf->utf_esp = tf->tf_esp;
 		//((void*)_pgfault_upcall)(curenv->env_pgfault_upcall);
+		
+		//cprintf("utf err :%d\n",utf->utf_err);
 		
 		tf->tf_esp = utf_addr;
 		tf->tf_eip = (uintptr_t)curenv->env_pgfault_upcall;

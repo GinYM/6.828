@@ -91,8 +91,8 @@ sys_exofork(void)
 	if(e<0){
 		return e;
 	}
-	cprintf("Parent id: %d\n",curenv->env_id);
-	cprintf("Child id: %d\n",newenv_store->env_id);
+	//cprintf("Parent id: %d\n",curenv->env_id);
+	//cprintf("Child id: %d\n",newenv_store->env_id);
 	newenv_store->env_status = ENV_NOT_RUNNABLE;
 	newenv_store->env_tf = curenv->env_tf;
 	newenv_store->env_tf.tf_regs.reg_eax = 0;
@@ -273,26 +273,32 @@ sys_page_map(envid_t srcenvid, void *srcva,
 	if(err_dst<0){
 		return err_dst;
 	}
+	//cprintf("1\n");
 	if((uint32_t)srcva >= UTOP || (uint32_t)srcva%PGSIZE!=0){
 		return -E_INVAL;
 	}
+	//cprintf("2\n");
 	if((uint32_t)dstva >= UTOP || (uint32_t)dstva%PGSIZE!=0){
 		return -E_INVAL;
 	}
+	//cprintf("3\n");
 
 	if((perm&(PTE_U|PTE_P)) != (PTE_U|PTE_P)){
 		return -E_INVAL;
 	}
+	//cprintf("4\n");
 	if(perm&(~(PTE_U|PTE_P|PTE_AVAIL|PTE_W))){
 		return -E_INVAL;
 	}
 
-
+	//cprintf("5\n");
 
 	pte_t * addr = pgdir_walk(src_env->env_pgdir,srcva,0);
 	if(addr == NULL){
 		return -E_INVAL;
 	}
+
+	//cprintf("1\n");
 
 
 	if((perm&PTE_W) && (((*addr)&PTE_W) == 0)){
@@ -437,24 +443,24 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 		return 0;
 
 	case SYS_page_alloc:
-		cprintf("sys page alloc\n");
+		//cprintf("sys page alloc\n");
 		return  sys_page_alloc((envid_t)a1, (void *)a2, (int)a3);
 		
 
 	case SYS_page_map:
-		cprintf("sys page map\n");
+		//cprintf("sys page map\n");
 		return sys_page_map((envid_t)a1, (void *)a2,(envid_t)a3,(void *)a4, (int)a5);
 
 	case SYS_page_unmap:
-		cprintf("sys page umap\n");
+		//cprintf("sys page umap\n");
 		return sys_page_unmap((envid_t)a1, (void *)a2);
 
 	case SYS_exofork:
-		cprintf("Sys fork\n");
+		//cprintf("Sys fork\n");
 		return sys_exofork();
 
 	case SYS_env_set_status:
-		cprintf("sys env set status\n");
+		//cprintf("sys env set status\n");
 		return sys_env_set_status((envid_t)a1, (int)a2);
 
 	case SYS_env_set_pgfault_upcall:
