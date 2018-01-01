@@ -22,9 +22,36 @@
 int32_t
 ipc_recv(envid_t *from_env_store, void *pg, int *perm_store)
 {
+	//cprintf("enter recev\n");
 	// LAB 4: Your code here.
-	panic("ipc_recv not implemented");
-	return 0;
+	//panic("ipc_recv not implemented");
+	int r;
+	if(pg!=NULL){
+		r = sys_ipc_recv(pg);
+		
+	}
+	else{
+		r = sys_ipc_recv((void*)((uint32_t)UTOP));
+		
+		//return r; 
+	}
+
+	if(r<0){
+		//cprintf("receive fails 1\n");
+		*from_env_store = 0;
+		*perm_store = 0;
+		return r;
+	}
+
+	if(from_env_store!=NULL){
+		*from_env_store = thisenv->env_ipc_from;
+	}
+
+	if(perm_store!=NULL){
+		*perm_store = thisenv->env_ipc_perm;
+	}
+
+	return thisenv->env_ipc_value;
 }
 
 // Send 'val' (and 'pg' with 'perm', if 'pg' is nonnull) to 'toenv'.
@@ -39,7 +66,27 @@ void
 ipc_send(envid_t to_env, uint32_t val, void *pg, int perm)
 {
 	// LAB 4: Your code here.
-	panic("ipc_send not implemented");
+	int r;
+	while(1){
+		if(pg!=NULL){
+			//cprintf("pg is not NULL\n");
+			r = sys_ipc_try_send(to_env, val, pg, perm);
+			
+		}
+		else{
+			//cprintf("pg is NULL\n");
+			r = sys_ipc_try_send(to_env, val, (void*)((uint32_t)UTOP), perm);
+			//cprintf("result is %d\n",r);
+		}
+		//r = sys_ipc_try_send(to_env, val, void *srcva, unsigned perm);
+		if(r<0 && r!=-E_IPC_NOT_RECV){
+			panic("sys_ipc_try_send fails: %e",r);
+		}
+		if(r == 0){
+			return;
+		}
+		sys_yield();
+	}
 }
 
 // Find the first environment of the given type.  We'll use this to

@@ -99,6 +99,24 @@ trap_init(void)
 	extern void irq_spurious();
 	extern void irq_ide();
 	extern void irq_error(); 
+
+	extern void irq_0();
+	extern void irq_1();
+	extern void irq_2();
+	extern void irq_3();
+	extern void irq_4();
+	extern void irq_5();
+	extern void irq_6();
+	extern void irq_7();
+	extern void irq_8();
+	extern void irq_9();
+	extern void irq_10();
+	extern void irq_11();
+	extern void irq_12();
+	extern void irq_13();
+	extern void irq_14();
+	extern void irq_15();
+
 	
 	SETGATE(idt[T_DIVIDE], 0, GD_KT, t_divide, 0);
 	SETGATE(idt[T_DEBUG], 0, GD_KT, t_debug, 0);
@@ -126,6 +144,26 @@ trap_init(void)
 	SETGATE(idt[IRQ_OFFSET+IRQ_SPURIOUS], 0, GD_KT, irq_spurious, 0);
 	SETGATE(idt[IRQ_OFFSET+IRQ_IDE], 0, GD_KT, irq_ide, 0);
 	SETGATE(idt[IRQ_OFFSET+IRQ_ERROR], 0, GD_KT, irq_error, 0);
+
+
+	SETGATE(idt[IRQ_OFFSET+0], 0, GD_KT, irq_0, 0);
+	SETGATE(idt[IRQ_OFFSET+1], 0, GD_KT, irq_1, 0);
+	SETGATE(idt[IRQ_OFFSET+2], 0, GD_KT, irq_2, 0);
+	SETGATE(idt[IRQ_OFFSET+3], 0, GD_KT, irq_3, 0);
+	SETGATE(idt[IRQ_OFFSET+4], 0, GD_KT, irq_4, 0);
+	SETGATE(idt[IRQ_OFFSET+5], 0, GD_KT, irq_5, 0);
+	SETGATE(idt[IRQ_OFFSET+6], 0, GD_KT, irq_6, 0);
+	SETGATE(idt[IRQ_OFFSET+7], 0, GD_KT, irq_7, 0);
+	SETGATE(idt[IRQ_OFFSET+8], 0, GD_KT, irq_8, 0);
+	SETGATE(idt[IRQ_OFFSET+9], 0, GD_KT, irq_9, 0);
+	SETGATE(idt[IRQ_OFFSET+10], 0, GD_KT, irq_10, 0);
+	SETGATE(idt[IRQ_OFFSET+11], 0, GD_KT, irq_11, 0);
+	SETGATE(idt[IRQ_OFFSET+12], 0, GD_KT, irq_12, 0);
+	SETGATE(idt[IRQ_OFFSET+13], 0, GD_KT, irq_13, 0);
+	SETGATE(idt[IRQ_OFFSET+14], 0, GD_KT, irq_14, 0);
+	SETGATE(idt[IRQ_OFFSET+15], 0, GD_KT, irq_15, 0);
+
+
 	// Per-CPU setup 
 	trap_init_percpu();
 }
@@ -243,6 +281,10 @@ trap_dispatch(struct Trapframe *tf)
 			//eax = tf->tf_regs.reg_eax;
 			tf->tf_regs.reg_eax = syscall(tf->tf_regs.reg_eax,tf->tf_regs.reg_edx,tf->tf_regs.reg_ecx,tf->tf_regs.reg_ebx,tf->tf_regs.reg_edi,tf->tf_regs.reg_esi);
 			//tf->tf_regs.reg_eax = eax;
+			return;
+		case IRQ_OFFSET+IRQ_TIMER:
+			lapic_eoi();
+			sched_yield();
 			return;
 	}
 
