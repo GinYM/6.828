@@ -142,7 +142,39 @@ static int
 file_block_walk(struct File *f, uint32_t filebno, uint32_t **ppdiskbno, bool alloc)
 {
        // LAB 5: Your code here.
-       panic("file_block_walk not implemented");
+       //panic("file_block_walk not implemented");
+       int r;
+       //*ppdiskbno = NULL;
+       if(filebno >= NDIRECT+NINDIRECT){
+           return -E_INVAL;
+       }
+       if(filebno>=NDIRECT){
+       		//cprintf("filebno %d\n",filebno);
+           if(f->f_indirect == 0 && alloc == false){
+               return -E_NOT_FOUND;
+           }
+           //*ppdiskbno = &f->f_indirect;
+           //cprintf("f_indirect %d\n",f->f_indirect);
+           if(f->f_indirect == 0 && alloc){
+               if((r = alloc_block()) < 0){
+                   return r;
+               }
+               else{
+                  f->f_indirect = r;
+                  memset(diskaddr(r),0,BLKSIZE);
+                  flush_block(diskaddr(r));
+                  //free_block(r);
+               }
+           }
+           if(ppdiskbno)
+           	*ppdiskbno = &((uint32_t*)diskaddr(f->f_indirect))[filebno-NDIRECT];
+       }
+       else{
+       		if(ppdiskbno)
+       	   		*ppdiskbno = &f->f_direct[filebno];
+       }
+       return 0;
+
 }
 
 // Set *blk to the address in memory where the filebno'th
@@ -156,8 +188,34 @@ file_block_walk(struct File *f, uint32_t filebno, uint32_t **ppdiskbno, bool all
 int
 file_get_block(struct File *f, uint32_t filebno, char **blk)
 {
-       // LAB 5: Your code here.
-       panic("file_get_block not implemented");
+	//cprintf("filebno is %d\n",filebno);
+    // LAB 5: Your code here.
+    //panic("file_get_block not implemented");
+    uint32_t *ppdiskbno;
+    int r;
+    if((r = file_block_walk(f,filebno,&ppdiskbno,true)) < 0){
+        return r;
+    }
+
+    if(*ppdiskbno == 0){
+    	//cprintf("Here!\n");
+        if((r = alloc_block()) < 0){
+        	return r;
+        }
+        else{
+        	//cprintf("r is %d\n",r);
+            *ppdiskbno = r;
+            //memset(diskaddr(r),0,BLKSIZE);
+            //flush_block(diskaddr(r));
+        }
+    }
+
+    //cprintf("ppdiskbno %d\n",*ppdiskbno);
+
+    *blk = diskaddr(*ppdiskbno);
+    //cprintf("");
+
+    return 0;
 }
 
 // Try to find a file named "name" in dir.  If so, set *file to it.
@@ -176,10 +234,12 @@ dir_lookup(struct File *dir, const char *name, struct File **file)
 	// We maintain the invariant that the size of a directory-file
 	// is always a multiple of the file system's block size.
 	assert((dir->f_size % BLKSIZE) == 0);
+	//cprintf("Here!\n");
 	nblock = dir->f_size / BLKSIZE;
 	for (i = 0; i < nblock; i++) {
 		if ((r = file_get_block(dir, i, &blk)) < 0)
 			return r;
+		//cprintf("blk is %x\n",blk);
 		f = (struct File*) blk;
 		for (j = 0; j < BLKFILES; j++)
 			if (strcmp(f[j].f_name, name) == 0) {
@@ -329,10 +389,14 @@ file_read(struct File *f, void *buf, size_t count, off_t offset)
 	off_t pos;
 	char *blk;
 
+	//cprintf("offset is %d, f_size is %d\n",offset,f->f_size);
+
 	if (offset >= f->f_size)
 		return 0;
 
 	count = MIN(count, f->f_size - offset);
+
+	//cprintf("count is %d, offset is %d\n",count,offset);
 
 	for (pos = offset; pos < offset + count; ) {
 		if ((r = file_get_block(f, pos / BLKSIZE, &blk)) < 0)
@@ -341,6 +405,7 @@ file_read(struct File *f, void *buf, size_t count, off_t offset)
 		memmove(buf, blk + pos % BLKSIZE, bn);
 		pos += bn;
 		buf += bn;
+
 	}
 
 	return count;

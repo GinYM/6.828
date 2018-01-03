@@ -71,9 +71,13 @@ umain(int argc, char **argv)
 	if ((r = xopen("/new-file", O_RDWR|O_CREAT)) < 0)
 		panic("serve_open /new-file: %e", r);
 
+	//cprintf("msg before write is %s\n",msg);
+
 	if ((r = devfile.dev_write(FVA, msg, strlen(msg))) != strlen(msg))
 		panic("file_write: %e", r);
 	cprintf("file_write is good\n");
+
+	//cprintf("Dev write is %d\n",r);
 
 	FVA->fd_offset = 0;
 	memset(buf, 0, sizeof buf);
@@ -81,8 +85,13 @@ umain(int argc, char **argv)
 		panic("file_read after file_write: %e", r);
 	if (r != strlen(msg))
 		panic("file_read after file_write returned wrong length: %d", r);
+
+	//cprintf("buf is %s\n",buf);
+	//cprintf("msg is %s\n",msg);
+
 	if (strcmp(buf, msg) != 0)
 		panic("file_read after file_write returned wrong data");
+	
 	cprintf("file_read after file_write is good\n");
 
 	// Now we'll try out open
@@ -101,13 +110,23 @@ umain(int argc, char **argv)
 	// Try files with indirect blocks
 	if ((f = open("/big", O_WRONLY|O_CREAT)) < 0)
 		panic("creat /big: %e", f);
+
+
+	cprintf("Here1\n");
+
+
 	memset(buf, 0, sizeof(buf));
 	for (i = 0; i < (NDIRECT*3)*BLKSIZE; i += sizeof(buf)) {
 		*(int*)buf = i;
 		if ((r = write(f, buf, sizeof(buf))) < 0)
 			panic("write /big@%d: %e", i, r);
 	}
+
+
+
 	close(f);
+
+	cprintf("Here2\n");
 
 	if ((f = open("/big", O_RDONLY)) < 0)
 		panic("open /big: %e", f);

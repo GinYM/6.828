@@ -419,38 +419,38 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 	//cprintf("Here\n");
 	
 	if((uint32_t)srcva < UTOP){
-		cprintf("Here!!\n");
+		//cprintf("Here!!\n");
 
 		if((uint32_t)srcva%PGSIZE!=0)
 			return -E_INVAL;
 		
-		cprintf("Here1\n");
+		//cprintf("Here1\n");
 
 		if((perm&(PTE_U|PTE_P)) != (PTE_U|PTE_P)){
 			return -E_INVAL;
 		}
 
-		cprintf("Here2\n");
+		//cprintf("Here2\n");
 
 		if(perm&(~(PTE_U|PTE_P|PTE_AVAIL|PTE_W))){
 			return -E_INVAL;
 		}
 
-		cprintf("Here3\n");
+		//cprintf("Here3\n");
 
 		pte_t * addr = pgdir_walk(curenv->env_pgdir,srcva,0);
 		if(addr == NULL){
 			return -E_INVAL;
 		}
 
-		cprintf("Here4\n");
+		//cprintf("Here4\n");
 
-		cprintf("addr is %x\n",*addr);
+		//cprintf("addr is %x\n",*addr);
 
 		if((perm&PTE_W)&&((*addr)&PTE_W) ==0 )
 			return -E_INVAL;
 
-		cprintf("Here5\n");
+		//cprintf("Here5\n");
 
 		sys_page_unmap(envid, srcva);
 		pte_t * pte_store;
