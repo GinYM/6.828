@@ -207,6 +207,7 @@ serve_set_size(envid_t envid, struct Fsreq_set_size *req)
 int
 serve_read(envid_t envid, union Fsipc *ipc)
 {
+	//cprintf("In serve_read\n");
 	struct Fsreq_read *req = &ipc->read;
 	struct Fsret_read *ret = &ipc->readRet;
 
@@ -230,9 +231,9 @@ serve_read(envid_t envid, union Fsipc *ipc)
 	o->o_fd->fd_offset += r;
 	//cprintf("size of buf is %d\n",req->req_n);
 	//cprintf("Data read is %d\n",r);
-	if(r == 0){
-		return -E_INVAL;
-	}
+	//if(r == 0){
+	//	return -E_INVAL;
+	//}
 
 	return r;
 }

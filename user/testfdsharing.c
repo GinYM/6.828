@@ -11,6 +11,7 @@ umain(int argc, char **argv)
 	if ((fd = open("motd", O_RDONLY)) < 0)
 		panic("open motd: %e", fd);
 	seek(fd, 0);
+	//cprintf("sizeof buf is %d\n",sizeof(buf));
 	if ((n = readn(fd, buf, sizeof buf)) <= 0)
 		panic("readn: %e", n);
 

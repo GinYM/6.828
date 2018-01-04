@@ -83,9 +83,20 @@ duppage(envid_t envid, unsigned pn)
 
 	// LAB 4: Your code here.
 	//panic("duppage not implemented");
+	cprintf("Here!\n");
+	if(uvpt[pn]&PTE_SHARE){
+		cprintf("perm is %d\n",uvpt[PGNUM(pn)] );
+		if ((r = sys_page_map(thisenv->env_id, (void*)(pn*PGSIZE), envid, (void*)(pn*PGSIZE), uvpt[pn] & PTE_SYSCALL)) < 0)
+			panic("sys_page_map fail: %e",r);
+		return 0;
+	}
+	
 	int perm;
 	if((uvpt[pn]&PTE_COW) !=0 || (uvpt[pn]&PTE_W) !=0 ){
+		
 		perm = PTE_P|PTE_U|PTE_COW;
+		
+		
 		if ((r = sys_page_map(thisenv->env_id, (void*)(pn*PGSIZE), envid, (void*)(pn*PGSIZE), perm)) < 0)
 			panic("sys_page_map fail: %e",r);
 		if ((r = sys_page_map(thisenv->env_id, (void*)(pn*PGSIZE), thisenv->env_id, (void*)(pn*PGSIZE), perm)) < 0)
@@ -94,7 +105,10 @@ duppage(envid_t envid, unsigned pn)
 	}
 	else{
 		//cprintf("Here??\n");
+		
 		perm = PTE_P|PTE_U;
+		
+		//perm = PTE_P|PTE_U;
 		if ((r = sys_page_map(thisenv->env_id, (void*)(pn*PGSIZE), envid, (void*)(pn*PGSIZE), perm)) < 0)
 			panic("sys_page_map fail: %e",r);
 		

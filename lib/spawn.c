@@ -302,6 +302,17 @@ static int
 copy_shared_pages(envid_t child)
 {
 	// LAB 5: Your code here.
+	
+	uint32_t addr;
+	int r;
+	for (addr = 0; addr < UTOP-PGSIZE; addr += PGSIZE){
+		cprintf("addr is %d\n",addr);
+		if( ( (uvpd[PDX(addr)]&PTE_P) && (uvpt[PGNUM(addr)]&PTE_P) && (uvpt[PGNUM(addr)]&PTE_SHARE)  )){
+			if ((r = sys_page_map(thisenv->env_id, (void*)(addr), child, (void*)(addr), uvpt[PGNUM(addr)] & PTE_SYSCALL)) < 0)
+				panic("sys_page_map fail: %e",r);
+		}	
+	}
+
 	return 0;
 }
 

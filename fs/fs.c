@@ -162,7 +162,7 @@ file_block_walk(struct File *f, uint32_t filebno, uint32_t **ppdiskbno, bool all
                else{
                   f->f_indirect = r;
                   memset(diskaddr(r),0,BLKSIZE);
-                  flush_block(diskaddr(r));
+                  //flush_block(diskaddr(r));
                   //free_block(r);
                }
            }
