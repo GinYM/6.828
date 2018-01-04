@@ -25,6 +25,7 @@ fsipc(unsigned type, void *dstva)
 		cprintf("[%08x] fsipc %d %08x\n", thisenv->env_id, type, *(uint32_t *)&fsipcbuf);
 
 	ipc_send(fsenv, type, &fsipcbuf, PTE_P | PTE_W | PTE_U);
+	//cprintf("destva is %x\n",dstva);
 	return ipc_recv(NULL, dstva, NULL);
 }
 
@@ -124,6 +125,9 @@ devfile_read(struct Fd *fd, void *buf, size_t n)
 	assert(r <= n);
 	assert(r <= PGSIZE);
 	memmove(buf, fsipcbuf.readRet.ret_buf, r);
+
+	cprintf("return value is %d\n",r);
+
 	return r;
 }
 

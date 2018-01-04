@@ -160,6 +160,7 @@ try_open:
 	o->o_file = f;
 
 	// Fill out the Fd structure
+	cprintf("fileid is !!!%d\n",o->o_fileid);
 	o->o_fd->fd_file.id = o->o_fileid;
 	o->o_fd->fd_omode = req->req_omode & O_ACCMODE;
 	o->o_fd->fd_dev_id = devfile.dev_id;
@@ -217,8 +218,13 @@ serve_read(envid_t envid, union Fsipc *ipc)
 	// Lab 5: Your code here:
 	struct OpenFile *o;
 	int r;
-	if ((r = openfile_lookup(envid, req->req_fileid, &o)) < 0)
+	cprintf("envid %d, req->req_fileid %d\n",envid,req->req_fileid);
+	if ((r = openfile_lookup(envid, req->req_fileid, &o)) < 0){
+		cprintf("r is %d\n",r);
 		return r;
+	}
+
+	//cprintf("r is %d\n",r);
 
 	//cprintf("file id is %d\n",o->o_fileid);
 	//cprintf("Offset is %d\n",o->o_fd->fd_offset);

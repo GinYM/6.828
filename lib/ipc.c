@@ -26,15 +26,21 @@ ipc_recv(envid_t *from_env_store, void *pg, int *perm_store)
 	// LAB 4: Your code here.
 	//panic("ipc_recv not implemented");
 	int r;
+	//cprintf("pg is %x\n",pg);
+	//cprintf("from_env_store is %x\n",from_env_store);
 	if(pg!=NULL){
+		//cprintf("here in ipc_recv\n");
 		r = sys_ipc_recv(pg);
-		
+		//cprintf("ipc_Recv is %d\n",r);
 	}
 	else{
+		//cprintf("here!\n");
 		r = sys_ipc_recv((void*)((uint32_t)UTOP));
 		
 		//return r; 
 	}
+
+	
 
 	if(r<0){
 		//cprintf("receive fails 1\n");

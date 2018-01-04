@@ -679,6 +679,7 @@ page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 	// Fill this function in
 	
 	pte_t * addr = pgdir_walk(pgdir,va,0);
+	//cprintf("addr is %x\n",addr);
 	//pte_stpre = &addr;
 	if(addr == NULL){
 		//cprintf("Here!!!\n");
@@ -720,13 +721,16 @@ void
 page_remove(pde_t *pgdir, void *va)
 {
 	// Fill this function in
-	pte_t * addr = pgdir_walk(pgdir,va,0);
-	pte_t ** pte_store = &addr;
+	//pte_t * addr = pgdir_walk(pgdir,va,0);
+	//pte_t ** pte_store = &addr;
+	pte_t *pte_store;
 	//cprintf("Continue: !!!\n");
-	struct PageInfo* pi = page_lookup(pgdir,va,pte_store);
+	struct PageInfo* pi = page_lookup(pgdir,va,&pte_store);
 
 	//cprintf("ADDR !!!! remove: %x\n",page2pa(pi));
 	//cprintf("PageInfo: %x\n",pi->pp_ref);
+
+	//cprintf("The pi is %x\n",pi);
 
 	if(pi == NULL){
 		return;
@@ -742,10 +746,18 @@ page_remove(pde_t *pgdir, void *va)
 		}
 		//cprintf("Page free lis -== %x\n",page_free_list); 
 		//cprintf("pte_store addr: %x\n",page2pa((struct PageInfo*)(*pte_store)));
-		**pte_store = 0;
+		*pte_store = 0;
 		//cprintf("Here!!!!\n");
 		//cprintf("Page free lis -== %x\n",page_free_list);
 	}
+	/*pte_t *new_pte_store;
+	struct PageInfo * pp = page_lookup(pgdir,va,&new_pte_store);
+	cprintf("pte_store is %x\n",pte_store);
+	cprintf("new_pte_store is %x\n",*new_pte_store);
+	if(page_lookup(pgdir,va,&pte_store) == NULL){
+		cprintf("The result is correct!\n");
+	}
+	*/
 }
 
 //

@@ -246,11 +246,11 @@ sys_page_alloc(envid_t envid, void *va, int perm)
 	if(pp == NULL){
 		return -E_NO_MEM;
 	}
-	pp->pp_ref++;
+	//pp->pp_ref++;
 	int result = page_insert(newenv_store->env_pgdir, pp, va, perm);
 	if(result<0){
 		page_free(pp);
-		return result;
+		//return result;
 	}
 	//cprintf("Success!\n");
 	return 0;
@@ -278,6 +278,7 @@ static int
 sys_page_map(envid_t srcenvid, void *srcva,
 	     envid_t dstenvid, void *dstva, int perm)
 {
+	//cprintf("Here!\n");
 	// Hint: This function is a wrapper around page_lookup() and
 	//   page_insert() from kern/pmap.c.
 	//   Again, most of the new code you write should be to check the
@@ -332,11 +333,17 @@ sys_page_map(envid_t srcenvid, void *srcva,
 	pte_t * pte_store;
 
 	struct PageInfo *pi =  page_lookup(src_env->env_pgdir, srcva, &pte_store);
+	cprintf("pte_store is %d\n",*pte_store);
+	if(*pte_store == 0){
+		return -E_INVAL;
+	}
 
 	int result = page_insert(dst_env->env_pgdir, pi, dstva, perm);
 	if(result<0){
 		return result;
 	}
+
+	//cprintf("Here??\n");
 
 	return 0;
 	//panic("sys_page_map not implemented");
@@ -507,6 +514,8 @@ sys_ipc_recv(void *dstva)
 	//cprintf("Enter sys_ipc_recv\n");
 	// LAB 4: Your code here.
 	//panic("sys_ipc_recv not implemented");
+	//cprintf("dstva is %x\n",dstva);
+	//cprintf("UTOP is %x\n",UTOP);
 	if((uint32_t)dstva<UTOP && (uint32_t)dstva%PGSIZE!=0){
 		panic("sys_ipc_recv fails: %e",-E_INVAL);
 		return -E_INVAL;
