@@ -155,6 +155,16 @@ sys_env_set_trapframe(envid_t envid, struct Trapframe *tf)
 	tf->tf_eflags &= (~FL_IOPL_MASK)|FL_IOPL_0;
 	tf->tf_eflags |= FL_IF;
 
+	tf->tf_ds |=3;
+	tf->tf_es |= 3;
+	tf->tf_ss |= 3;
+	tf->tf_cs |= 3;
+
+	//tf->tf_eflags |= FL_IOPL_3;
+	if((r = user_mem_check(newenv_store, tf, sizeof(*tf), PTE_U) ) < 0){
+		return r;
+	}
+
 	newenv_store->env_tf = *tf;
 
 	return 0;
@@ -545,7 +555,10 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 	//int return_value;
 	//cprintf("Syscall is %d\n",syscallno);
 
+	cprintf("syscallno: %d\n",syscallno);
+
 	switch (syscallno) {
+
 	case SYS_cputs:
 		sys_cputs((char*)a1,a2);
 		return 0;

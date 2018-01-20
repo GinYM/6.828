@@ -11,6 +11,8 @@ umain(int argc, char **argv)
 	int secno = 0;
 	int diskno = 1;
 
+	//cprintf("eflags is : %d\n",read_eflags());
+
 	if (read_eflags() & FL_IOPL_3)
 		cprintf("eflags wrong\n");
 
