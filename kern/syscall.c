@@ -555,7 +555,7 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 	//int return_value;
 	//cprintf("Syscall is %d\n",syscallno);
 
-	cprintf("syscallno: %d\n",syscallno);
+	//cprintf("syscallno: %d\n",syscallno);
 
 	switch (syscallno) {
 
