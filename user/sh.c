@@ -38,6 +38,7 @@ again:
 				exit();
 			}
 			argv[argc++] = t;
+			//cprintf("token for w: %s\n",t);
 			break;
 
 		case '<':	// Input redirection
@@ -85,12 +86,14 @@ again:
 				cprintf("fork: %e", r);
 				exit();
 			}
+			//cprintf("r is %d\n",r);
 			if (r == 0) {
 				if (p[0] != 0) {
 					dup(p[0], 0);
 					close(p[0]);
 				}
 				close(p[1]);
+				//cprintf("finished r == 0!\n");
 				goto again;
 			} else {
 				pipe_child = r;
@@ -99,6 +102,7 @@ again:
 					close(p[1]);
 				}
 				close(p[0]);
+				//cprintf("goto ruint\n");
 				goto runit;
 			}
 			panic("| not implemented");
@@ -137,15 +141,18 @@ runit:
 	// Print the command.
 	if (debug) {
 		cprintf("[%08x] SPAWN:", thisenv->env_id);
+		//cprintf("here in sh.c before for \n");
 		for (i = 0; argv[i]; i++)
 			cprintf(" %s", argv[i]);
 		cprintf("\n");
 	}
 
 	// Spawn the command!
+	//cprintf("start to spawn\n");
 	if ((r = spawn(argv[0], (const char**) argv)) < 0)
 		cprintf("spawn %s: %e\n", argv[0], r);
 
+	//cprintf("result is %d\n",r);
 	// In the parent, close all file descriptors and wait for the
 	// spawned command to exit.
 	close_all();
@@ -259,6 +266,9 @@ usage(void)
 void
 umain(int argc, char **argv)
 {
+
+	//cprintf("Here? in sh.c\n");
+
 	int r, interactive, echocmds;
 	struct Argstate args;
 
@@ -266,6 +276,8 @@ umain(int argc, char **argv)
 	echocmds = 0;
 	argstart(&argc, argv, &args);
 	while ((r = argnext(&args)) >= 0)
+	{
+		//cprintf("r is %c\n",(r));
 		switch (r) {
 		case 'd':
 			debug++;
@@ -279,6 +291,9 @@ umain(int argc, char **argv)
 		default:
 			usage();
 		}
+	}
+
+	//cprintf("Here in sh.c next? \n");
 
 	if (argc > 2)
 		usage();
@@ -294,6 +309,7 @@ umain(int argc, char **argv)
 	while (1) {
 		char *buf;
 
+		//
 		buf = readline(interactive ? "$ " : NULL);
 		if (buf == NULL) {
 			if (debug)
@@ -313,6 +329,8 @@ umain(int argc, char **argv)
 		if (debug)
 			cprintf("FORK: %d\n", r);
 		if (r == 0) {
+			//cprintf("Here in sh.c next? \n");
+
 			runcmd(buf);
 			exit();
 		} else

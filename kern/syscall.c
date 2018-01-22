@@ -20,10 +20,11 @@ sys_cputs(const char *s, size_t len)
 {
 	// Check that the user has permission to read memory [s, s+len).
 	// Destroy the environment if not.
-	user_mem_assert(curenv,(void*)s,len,PTE_U);
+	
 	
 
 	// LAB 3: Your code here.
+	user_mem_assert(curenv,(void*)s, len,PTE_P | PTE_U);
 
 	// Print the string supplied by the user.
 	cprintf("%.*s", len, s);
@@ -87,17 +88,15 @@ sys_exofork(void)
 	if(e<0){
 		return e;
 	}
-	//cprintf("Parent id: %d\n",curenv->env_id);
-	//cprintf("Child id: %d\n",newenv_store->env_id);
+
 	newenv_store->env_status = ENV_NOT_RUNNABLE;
 	newenv_store->env_tf = curenv->env_tf;
 	newenv_store->env_tf.tf_regs.reg_eax = 0;
-	curenv->env_tf.tf_regs.reg_eax = newenv_store->env_id;
+	//curenv->env_tf.tf_regs.reg_eax = newenv_store->env_id;
 	
-	//cprintf("The result should be return is %d\n",curenv->env);
+
 	return newenv_store->env_id;
-	
-	//panic("sys_exofork not implemented");
+
 }
 
 // Set envid's env_status to status, which must be ENV_RUNNABLE
@@ -130,7 +129,7 @@ sys_env_set_status(envid_t envid, int status)
 		(newenv_store)->env_status = status;
 		return 0;
 	}
-	//panic("sys_env_set_status not implemented");
+	
 }
 
 // Set envid's trap frame to 'tf'.
@@ -146,7 +145,6 @@ sys_env_set_trapframe(envid_t envid, struct Trapframe *tf)
 	// LAB 5: Your code here.
 	// Remember to check whether the user has supplied us with a good
 	// address!
-	//panic("sys_env_set_trapframe not implemented");
 	struct Env* newenv_store;
 	int r;
 	if( (r = envid2env(envid,&newenv_store,1)) < 0){
@@ -182,9 +180,7 @@ sys_env_set_trapframe(envid_t envid, struct Trapframe *tf)
 static int
 sys_env_set_pgfault_upcall(envid_t envid, void *func)
 {
-	//cprintf("Here!");
 	// LAB 4: Your code here.
-	//panic("sys_env_set_pgfault_upcall not implemented");
 	struct Env* newenv_store;
 	int err = envid2env(envid,&newenv_store,1);
 	//cprintf("err is %d\n",err);
@@ -192,8 +188,6 @@ sys_env_set_pgfault_upcall(envid_t envid, void *func)
 		return err;
 	}
 
-	//cprintf("The envid is %d\n",envid);
-	//cprintf("The addr is %x\n",func);
 	
 	newenv_store->env_pgfault_upcall = func;
 
@@ -343,7 +337,7 @@ sys_page_map(envid_t srcenvid, void *srcva,
 	pte_t * pte_store;
 
 	struct PageInfo *pi =  page_lookup(src_env->env_pgdir, srcva, &pte_store);
-	cprintf("pte_store is %d\n",*pte_store);
+	//cprintf("pte_store is %d\n",*pte_store);
 	if(*pte_store == 0){
 		return -E_INVAL;
 	}

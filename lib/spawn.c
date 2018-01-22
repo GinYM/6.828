@@ -19,6 +19,8 @@ static int copy_shared_pages(envid_t child);
 int
 spawn(const char *prog, const char **argv)
 {
+	//cprintf("top at spawn\n");
+
 	unsigned char elf_buf[512];
 	struct Trapframe child_tf;
 	envid_t child;
@@ -27,6 +29,8 @@ spawn(const char *prog, const char **argv)
 	struct Elf *elf;
 	struct Proghdr *ph;
 	int perm;
+
+	//cprintf("after spawn!\n");
 
 	// This code follows this procedure:
 	//
@@ -85,12 +89,20 @@ spawn(const char *prog, const char **argv)
 	//
 	//   - Start the child process running with sys_env_set_status().
 
+	//cprintf("Before open\n");
+	//cprintf("prog is %s\n",prog);
+
 	if ((r = open(prog, O_RDONLY)) < 0)
 		return r;
 	fd = r;
 
+	//cprintf("after open\n");
+
 	// Read elf header
 	elf = (struct Elf*) elf_buf;
+
+	//cprintf("elf !!! \n");
+
 	if (readn(fd, elf_buf, sizeof(elf_buf)) != sizeof(elf_buf)
 	    || elf->e_magic != ELF_MAGIC) {
 		close(fd);
@@ -98,10 +110,14 @@ spawn(const char *prog, const char **argv)
 		return -E_NOT_EXEC;
 	}
 
+	//cprintf("before sys_exofork!\n");
+
 	// Create new child environment
 	if ((r = sys_exofork()) < 0)
 		return r;
 	child = r;
+
+	//cprintf("child is %d\n",child);
 
 	// Set up trap frame, including initial stack.
 	child_tf = envs[ENVX(child)].env_tf;
@@ -124,6 +140,7 @@ spawn(const char *prog, const char **argv)
 	}
 	close(fd);
 	fd = -1;
+
 
 	// Copy shared library state.
 	if ((r = copy_shared_pages(child)) < 0)

@@ -160,7 +160,6 @@ try_open:
 	o->o_file = f;
 
 	// Fill out the Fd structure
-	cprintf("fileid is !!!%d\n",o->o_fileid);
 	o->o_fd->fd_file.id = o->o_fileid;
 	o->o_fd->fd_omode = req->req_omode & O_ACCMODE;
 	o->o_fd->fd_dev_id = devfile.dev_id;
@@ -208,7 +207,6 @@ serve_set_size(envid_t envid, struct Fsreq_set_size *req)
 int
 serve_read(envid_t envid, union Fsipc *ipc)
 {
-	//cprintf("In serve_read\n");
 	struct Fsreq_read *req = &ipc->read;
 	struct Fsret_read *ret = &ipc->readRet;
 
@@ -218,29 +216,15 @@ serve_read(envid_t envid, union Fsipc *ipc)
 	// Lab 5: Your code here:
 	struct OpenFile *o;
 	int r;
-	cprintf("envid %d, req->req_fileid %d\n",envid,req->req_fileid);
 	if ((r = openfile_lookup(envid, req->req_fileid, &o)) < 0){
-		cprintf("r is %d\n",r);
 		return r;
 	}
 
-	//cprintf("r is %d\n",r);
-
-	//cprintf("file id is %d\n",o->o_fileid);
-	//cprintf("Offset is %d\n",o->o_fd->fd_offset);
-
-	//cprintf("req_n is %d\n",req->req_n);
 
 	if( ( r = file_read(o->o_file, ret->ret_buf, req->req_n, o->o_fd->fd_offset) ) < 0){
 		return r;
 	}
 	o->o_fd->fd_offset += r;
-	//cprintf("size of buf is %d\n",req->req_n);
-	//cprintf("Data read is %d\n",r);
-	//if(r == 0){
-	//	return -E_INVAL;
-	//}
-
 	return r;
 }
 
@@ -252,21 +236,18 @@ serve_read(envid_t envid, union Fsipc *ipc)
 int
 serve_write(envid_t envid, struct Fsreq_write *req)
 {
-	//cprintf("req_buf is %s\n",(req->req_buf+2));
 	if (debug)
 		cprintf("serve_write %08x %08x %08x\n", envid, req->req_fileid, req->req_n);
 
 	// LAB 5: Your code here.
-	//panic("serve_write not implemented");
-	int r;
 	struct OpenFile *o;
+	int r;
 	if ((r = openfile_lookup(envid, req->req_fileid, &o)) < 0)
 		return r;
 	if( ( r = file_write(o->o_file, req->req_buf, req->req_n, o->o_fd->fd_offset) ) < 0){
 		return r;
 	}
 	o->o_fd->fd_offset += r;
-	//cprintf("data write is %d\n",r);
 
 	return r;
 }

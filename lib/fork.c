@@ -25,7 +25,9 @@ pgfault(struct UTrapframe *utf)
 	//   (see <inc/memlayout.h>).
 
 	// LAB 4: Your code here.
-	//cprintf("err is %x\n",err&FEC_WR);
+	//cprintf("err is %x\n",err);
+	//cprintf("uvpt is %x\n",uvpt[PGNUM(addr)]);
+	//cprintf("addr is %x\n",addr);
 	if((err&FEC_WR) ==0 || ((uvpt[PGNUM(addr)]&PTE_COW) ==0)){
 		panic("panic pgfault!");
 	}
@@ -39,7 +41,9 @@ pgfault(struct UTrapframe *utf)
 	//   You should make three system calls.
 
 	// LAB 4: Your code here.
-	envid_t envid =	sys_getenvid();
+	envid_t envid =	0;//sys_getenvid();
+
+	//cprintf("envid is %d\n",envid);
 
 	addr = ROUNDDOWN(addr,PGSIZE);
 
@@ -83,9 +87,9 @@ duppage(envid_t envid, unsigned pn)
 
 	// LAB 4: Your code here.
 	//panic("duppage not implemented");
-	cprintf("Here!\n");
+	//cprintf("Here!\n");
 	if(uvpt[pn]&PTE_SHARE){
-		cprintf("perm is %d\n",uvpt[PGNUM(pn)] );
+		//cprintf("perm is %d\n",uvpt[PGNUM(pn)] );
 		if ((r = sys_page_map(thisenv->env_id, (void*)(pn*PGSIZE), envid, (void*)(pn*PGSIZE), uvpt[pn] & PTE_SYSCALL)) < 0)
 			panic("sys_page_map fail: %e",r);
 		return 0;

@@ -132,15 +132,11 @@ boot_alloc(uint32_t n)
 void
 mem_init(void)
 {
-
 	uint32_t cr0;
 	size_t n;
 
 	// Find out how much memory the machine has (npages & npages_basemem).
 	i386_detect_memory();
-
-	// Remove this line when you're ready to test this function.
-	//panic("mem_init: This function is not finished\n");
 
 	//////////////////////////////////////////////////////////////////////
 	// create initial page directory.
@@ -349,9 +345,6 @@ page_init(void)
 	int up =(int)(boot_alloc(0));
 	//cprintf("UP: %x",up);
 
-	cprintf("Number of pages: %d\n",npages);
-	cprintf("Kernel addr: %x\n",(size_t)(KADDR(MPENTRY_PADDR)));
-	cprintf("The addr for mp is: %d\n",(size_t)(KADDR(MPENTRY_PADDR))/PGSIZE);
 	for (i = 0; i < npages; i++) {
 		if( page2pa(&pages[i]) == MPENTRY_PADDR){
 			//if(i!=npages-1){
@@ -554,7 +547,7 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 // mapped pages.
 //
 // Hint: the TA solution uses pgdir_walk
-static void 
+static void
 boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm)
 {
 	// Fill this function in
@@ -619,45 +612,28 @@ int
 page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 {
 	// Fill this function in
-	pte_t * addr = pgdir_walk(pgdir,va,0);
+	//page_remove(pgdir,va);
+	pte_t * addr = pgdir_walk(pgdir,va,1);
 
 	if(addr == NULL){
-		addr = pgdir_walk(pgdir,va,1);
-		if(addr == NULL){
+		//addr = pgdir_walk(pgdir,va,1);
+		//if(addr == NULL){
 			return -E_NO_MEM;
-		}
+		//}
 
 	}
-	else{
-
-		if(((*addr)&~0x1FF) != (page2pa(pp)&~0x1FF) && (*addr !=0)){
-			
-			page_remove(pgdir,va);
-
-			//cprintf("Page free list in page insert: %x\n",page_free_list);
-			
-		}
-		else if(((*addr)&~0x1FF) == (page2pa(pp)&~0x1FF)){
-			pp->pp_ref--;
-		}
-	}
-	//cprintf("Check addr: %x\n",PADDR(addr));
-
-	//cprintf("PP->PPREF1: %d\n",pp->pp_ref);
-
 
 	pp->pp_ref++;
 
-	//cprintf("PP->PPREF2: %d\n",pp->pp_ref);
+	if((*addr)&PTE_P){
+		page_remove(pgdir,va);
+	}
 
-	//cprintf("Physical address: %x\n",page2pa(pp));
-	*addr = page2pa(pp)|perm|PTE_P;
+
+
+	*addr = PTE_ADDR(page2pa(pp))|perm|PTE_P;
+    pgdir[PDX(va)] |= perm;
 	tlb_invalidate(pgdir,va);
-	//cprintf("The addr is :%x\n",addr);
-	//cprintf("KEN ADDR: %x\n",kern_pgdir);
-	//cprintf("Physical address: %x\n",*addr);
-
-
 
 	return 0;
 }
@@ -679,24 +655,23 @@ page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 	// Fill this function in
 	
 	pte_t * addr = pgdir_walk(pgdir,va,0);
-	//cprintf("addr is %x\n",addr);
-	//pte_stpre = &addr;
 	if(addr == NULL){
-		//cprintf("Here!!!\n");
 		return NULL;
 	}
 
-	pte_t dirIdx = PDX(va);
+	if((*addr & PTE_P) == 0){
+		return NULL;
+	}
+
+	
 	if(pte_store != NULL){
 		*pte_store = addr;
 	}
 
-	//cprintf("ADDR in look up %x\n",addr);
 	
-	struct PageInfo* result = (struct PageInfo*) pa2page(PTE_ADDR(*addr)); 
+	struct PageInfo* result = (struct PageInfo*) pa2page(PTE_ADDR(*addr)+PGOFF(va)); 
 
-	//cprintf("Reslt is %x\n",result);
-
+	
 	return result;
 	
 	
@@ -727,10 +702,6 @@ page_remove(pde_t *pgdir, void *va)
 	//cprintf("Continue: !!!\n");
 	struct PageInfo* pi = page_lookup(pgdir,va,&pte_store);
 
-	//cprintf("ADDR !!!! remove: %x\n",page2pa(pi));
-	//cprintf("PageInfo: %x\n",pi->pp_ref);
-
-	//cprintf("The pi is %x\n",pi);
 
 	if(pi == NULL){
 		return;
@@ -740,24 +711,13 @@ page_remove(pde_t *pgdir, void *va)
 		if(pi->pp_ref!=0)
 			page_decref(pi);
 		if(pi->pp_ref == 0){
-			//page_decref(pi);
-			//pi->pp_ref = 0;
 			tlb_invalidate(pgdir,va);
 		}
-		//cprintf("Page free lis -== %x\n",page_free_list); 
-		//cprintf("pte_store addr: %x\n",page2pa((struct PageInfo*)(*pte_store)));
+		
 		*pte_store = 0;
-		//cprintf("Here!!!!\n");
-		//cprintf("Page free lis -== %x\n",page_free_list);
+		
 	}
-	/*pte_t *new_pte_store;
-	struct PageInfo * pp = page_lookup(pgdir,va,&new_pte_store);
-	cprintf("pte_store is %x\n",pte_store);
-	cprintf("new_pte_store is %x\n",*new_pte_store);
-	if(page_lookup(pgdir,va,&pte_store) == NULL){
-		cprintf("The result is correct!\n");
-	}
-	*/
+	
 }
 
 //
@@ -806,13 +766,13 @@ mmio_map_region(physaddr_t pa, size_t size)
 	// Your code here:
 	//panic("mmio_map_region not implemented");
 	int perm = PTE_PCD|PTE_PWT|PTE_W|PTE_P;
-	if(base+ROUNDUP(size,PGSIZE) >= MMIOLIM){
+	if(base+ROUNDUP(size,PGSIZE) > MMIOLIM){
 		panic("mmio_map_region not enough memory");
 	}
 	boot_map_region(kern_pgdir, base, ROUNDUP(size,PGSIZE), pa, perm);
 	void* b = (void*)base;
 	base += ROUNDUP(size,PGSIZE);
-	return (void*)b;
+	return b;
 
 }
 
@@ -942,10 +902,7 @@ check_page_free_list(bool only_low_memory)
 
 	// if there's a page that shouldn't be on the free list,
 	// try to make sure it eventually causes trouble.
-	
-
 	for (pp = page_free_list; pp; pp = pp->pp_link){
-		//cprintf("Page free list %x\n",pp);
 		if (PDX(page2pa(pp)) < pdx_limit)
 			memset(page2kva(pp), 0x97, 128);
 	}
@@ -975,7 +932,7 @@ check_page_free_list(bool only_low_memory)
 	assert(nfree_basemem > 0);
 	assert(nfree_extmem > 0);
 
-	cprintf("check_page_free_list() succeeded!\n");
+	//cprintf("check_page_free_list() succeeded!\n");
 }
 
 //
@@ -1076,23 +1033,18 @@ check_kern_pgdir(void)
 	n = ROUNDUP(npages*sizeof(struct PageInfo), PGSIZE);
 	for (i = 0; i < n; i += PGSIZE)
 	{
-		//cprintf("check %x\n",check_va2pa(pgdir, UPAGES + i));
 		assert(check_va2pa(pgdir, UPAGES + i) == PADDR(pages) + i);
 	}
 
 	// check envs array (new test for lab 3)
 	n = ROUNDUP(NENV*sizeof(struct Env), PGSIZE);
 	for (i = 0; i < n; i += PGSIZE){
-		//cprintf("I is %d\n",i);
-		//cprintf("result is %x\n",check_va2pa(pgdir, UENVS + i));
 		assert(check_va2pa(pgdir, UENVS + i) == PADDR(envs) + i);
 	}
 
 	// check phys mem
 	for (i = 0; i < npages * PGSIZE; i += PGSIZE)
 	{
-		//cprintf("idx = %d\n",i);
-		//cprintf("check : %x\n",check_va2pa(pgdir, KERNBASE + i));
 		assert(check_va2pa(pgdir, KERNBASE + i) == i);
 		
 	}
@@ -1370,6 +1322,8 @@ check_page(void)
 	mm2 = (uintptr_t) mmio_map_region(0, 4096);
 	// check that they're in the right region
 	//cprintf("mm1 addr is %x\n",mm1);
+	//cprintf("MMIOBASE is %x\n",MMIOBASE);
+	//cprintf("MMIOLIM is %x\n",MMIOLIM);
 	//cprintf("mm2 addr is: %x\n",mm2);
 	//cprintf("MMIOLIM addr is %x\n",MMIOLIM);
 	assert(mm1 >= MMIOBASE && mm1 + 8096 < MMIOLIM);

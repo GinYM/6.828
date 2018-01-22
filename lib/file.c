@@ -15,16 +15,26 @@ union Fsipc fsipcbuf __attribute__((aligned(PGSIZE)));
 static int
 fsipc(unsigned type, void *dstva)
 {
+	//cprintf("in fsipc\n");
 	static envid_t fsenv;
 	if (fsenv == 0)
 		fsenv = ipc_find_env(ENV_TYPE_FS);
+
+	//cprintf("after ipc_find_env\n");
 
 	static_assert(sizeof(fsipcbuf) == PGSIZE);
 
 	if (debug)
 		cprintf("[%08x] fsipc %d %08x\n", thisenv->env_id, type, *(uint32_t *)&fsipcbuf);
 
+	if(debug){
+		cprintf("here before ipc_send\n");
+	}
+
 	ipc_send(fsenv, type, &fsipcbuf, PTE_P | PTE_W | PTE_U);
+	
+
+	
 	//cprintf("destva is %x\n",dstva);
 	return ipc_recv(NULL, dstva, NULL);
 }
@@ -72,6 +82,8 @@ open(const char *path, int mode)
 	int r;
 	struct Fd *fd;
 
+	//cprintf("in file.c before open\n");
+
 	if (strlen(path) >= MAXPATHLEN)
 		return -E_BAD_PATH;
 
@@ -81,10 +93,14 @@ open(const char *path, int mode)
 	strcpy(fsipcbuf.open.req_path, path);
 	fsipcbuf.open.req_omode = mode;
 
+	//cprintf("in file.c before fsipc\n");
+
 	if ((r = fsipc(FSREQ_OPEN, fd)) < 0) {
 		fd_close(fd, 0);
 		return r;
 	}
+
+	//cprintf("in file.c after fsipc\n");
 
 	return fd2num(fd);
 }
@@ -122,11 +138,14 @@ devfile_read(struct Fd *fd, void *buf, size_t n)
 	fsipcbuf.read.req_n = n;
 	if ((r = fsipc(FSREQ_READ, NULL)) < 0)
 		return r;
+
+	//cprintf("r is %d\n",r);
+	//cprintf("n is %d\n",n);
 	assert(r <= n);
 	assert(r <= PGSIZE);
 	memmove(buf, fsipcbuf.readRet.ret_buf, r);
 
-	cprintf("return value is %d\n",r);
+	//cprintf("return value is %d\n",r);
 
 	return r;
 }
