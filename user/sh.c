@@ -25,6 +25,7 @@ runcmd(char* s)
 	char *argvbuf[MAXARGS];
 	bool is_sec = false;
 	int argc, c, i, r, p[2], fd, pipe_child;
+	int cur_size = 0;
 
 	pipe_child = 0;
 	gettoken(s, 0);
@@ -33,6 +34,27 @@ again:
 	argc = 0;
 	while (1) {
 		switch ((c = gettoken(0, &t))) {
+
+		case '"':
+			//cprintf("here!\n");
+			cur_size = 0;
+			//argv[argc++] = '"';
+			while((c = gettoken(0,&t))!='"'){
+				argv[argc++] = t;
+			}
+			//argv[argc++] = '"';
+
+			//argv0buf[cur_size] = '\0';
+			//cprintf("cur_size is %d\n",cur_size);
+			//cprintf("assign\n");
+			//argv[argc++] = "Hello world";
+			//argv[argc++][0] = argv0buf[0];
+			//strcpy(argv[argc],argv0buf);
+			//argc++;
+			//cprintf("%s\n",argv[argc-1]);
+			//argv[argc++] = malloc(cur_size*sizeof(char));
+			//memcpy(argv[argc],argv0buf,cur_size*sizeof(char));
+			break;
 
 		case ';':   // New command
 			is_sec = true;
@@ -136,6 +158,7 @@ again:
 	}
 
 runit:
+	
 	// Return immediately if command line was empty.
 	if (argc == 0) {
 		if (debug)
@@ -207,57 +230,7 @@ runit:
 		}
 	}
 
-	/*
-
-	// Clean up command line.
-	// Read all commands from the filesystem: add an initial '/' to
-	// the command name.
-	// This essentially acts like 'PATH=/'.
-	if (argv[0][0] != '/') {
-		argv0buf[0] = '/';
-		strcpy(argv0buf + 1, argv[0]);
-		argv[0] = argv0buf;
-	}
-
-
-	argv[argc] = 0;
-
-	// Print the command.
-	if (debug) {
-		cprintf("[%08x] SPAWN:", thisenv->env_id);
-		//cprintf("here in sh.c before for \n");
-		for (i = 0; argv[i]; i++)
-			cprintf(" %s", argv[i]);
-		cprintf("\n");
-	}
-
-	// Spawn the command!
-	//cprintf("start to spawn\n");
-	if ((r = spawn(argv[0], (const char**) argv)) < 0)
-		cprintf("spawn %s: %e\n", argv[0], r);
-
-	//cprintf("result is %d\n",r);
-	// In the parent, close all file descriptors and wait for the
-	// spawned command to exit.
-	close_all();
-	if (r >= 0) {
-		if (debug)
-			cprintf("[%08x] WAIT %s %08x\n", thisenv->env_id, argv[0], r);
-		wait(r);
-		if (debug)
-			cprintf("[%08x] wait finished\n", thisenv->env_id);
-	}
-
-	// If we were the left-hand part of a pipe,
-	// wait for the right-hand part to finish.
-	if (pipe_child) {
-		if (debug)
-			cprintf("[%08x] WAIT pipe_child %08x\n", thisenv->env_id, pipe_child);
-		wait(pipe_child);
-		if (debug)
-			cprintf("[%08x] wait finished\n", thisenv->env_id);
-	}
-	*/
+	
 
 	// Done!
 	close_all();
@@ -277,7 +250,7 @@ runit:
 // Eventually (once we parse the space where the \0 will go),
 // words get nul-terminated.
 #define WHITESPACE " \t\r\n"
-#define SYMBOLS "<|>&;()"
+#define SYMBOLS "<|>&;()\""
 
 int
 _gettoken(char *s, char **p1, char **p2)
