@@ -22,6 +22,8 @@ void
 runcmd(char* s)
 {
 	char *argv[MAXARGS], *t, argv0buf[BUFSIZ];
+	char *argvbuf[MAXARGS];
+	bool is_sec = false;
 	int argc, c, i, r, p[2], fd, pipe_child;
 
 	pipe_child = 0;
@@ -31,6 +33,12 @@ again:
 	argc = 0;
 	while (1) {
 		switch ((c = gettoken(0, &t))) {
+
+		case ';':   // New command
+			is_sec = true;
+			argv[argc++] = ";";
+			break;
+
 
 		case 'w':	// Add an argument
 			if (argc == MAXARGS) {
@@ -61,7 +69,7 @@ again:
 				cprintf("open %s for write: %e", t, fd);
 				exit();
 			}
-			if(fd !=0 ){
+			if (fd != 0 ) {
 				dup(fd, 0);
 				close(fd);
 			}
@@ -73,7 +81,7 @@ again:
 				cprintf("syntax error: > not followed by word\n");
 				exit();
 			}
-			if ((fd = open(t, O_WRONLY|O_CREAT|O_TRUNC)) < 0) {
+			if ((fd = open(t, O_WRONLY | O_CREAT | O_TRUNC)) < 0) {
 				cprintf("open %s for write: %e", t, fd);
 				exit();
 			}
@@ -129,11 +137,77 @@ again:
 
 runit:
 	// Return immediately if command line was empty.
-	if(argc == 0) {
+	if (argc == 0) {
 		if (debug)
 			cprintf("EMPTY COMMAND\n");
 		return;
 	}
+
+	// Manipulate ;
+	int com_idx = 0;
+	for (int i = 0; i < argc; i++) {
+		//cprintf("i is %d\n",i);
+		if (argv[i][0] != ';') {
+			argvbuf[com_idx++] = argv[i];
+			if(i != argc-1){
+				continue;
+			}
+			else{
+				argv[argc] = 0;
+				com_idx = 0;
+			}
+			
+		}
+		else {
+			argvbuf[com_idx] = 0;
+			com_idx = 0;
+
+		}
+
+		if (com_idx == 0 && i != 0) {
+			if (argv[0][0] != '/') {
+				argv0buf[0] = '/';
+				strcpy(argv0buf + 1, argvbuf[0]);
+				argvbuf[0] = argv0buf;
+			}
+			if (debug) {
+				cprintf("[%08x] SPAWN:", thisenv->env_id);
+				//cprintf("here in sh.c before for \n");
+				for (i = 0; argvbuf[i]; i++)
+					cprintf(" %s", argvbuf[i]);
+				cprintf("\n");
+			}
+
+			// Spawn the command!
+			//cprintf("start to spawn\n");
+			if ((r = spawn(argvbuf[0], (const char**) (argvbuf))) < 0)
+				cprintf("spawn %s: %e\n", argv[0], r);
+
+			//cprintf("result is %d\n",r);
+			// In the parent, close all file descriptors and wait for the
+			// spawned command to exit.
+			
+			if (r >= 0) {
+				if (debug)
+					cprintf("[%08x] WAIT %s %08x\n", thisenv->env_id, argvbuf[0], r);
+				wait(r);
+				if (debug)
+					cprintf("[%08x] wait finished\n", thisenv->env_id);
+			}
+
+			// If we were the left-hand part of a pipe,
+			// wait for the right-hand part to finish.
+			if (pipe_child) {
+				if (debug)
+					cprintf("[%08x] WAIT pipe_child %08x\n", thisenv->env_id, pipe_child);
+				wait(pipe_child);
+				if (debug)
+					cprintf("[%08x] wait finished\n", thisenv->env_id);
+			}
+		}
+	}
+
+	/*
 
 	// Clean up command line.
 	// Read all commands from the filesystem: add an initial '/' to
@@ -144,6 +218,8 @@ runit:
 		strcpy(argv0buf + 1, argv[0]);
 		argv[0] = argv0buf;
 	}
+
+
 	argv[argc] = 0;
 
 	// Print the command.
@@ -181,8 +257,10 @@ runit:
 		if (debug)
 			cprintf("[%08x] wait finished\n", thisenv->env_id);
 	}
+	*/
 
 	// Done!
+	close_all();
 	exit();
 }
 
