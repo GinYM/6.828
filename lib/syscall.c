@@ -21,18 +21,20 @@ syscall(int num, int check, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 	// memory locations.
 
 	asm volatile("int %1\n"
-		     : "=a" (ret)
+		     : "=a" (ret)  //EAX
 		     : "i" (T_SYSCALL),
-		       "a" (num),
-		       "d" (a1),
-		       "c" (a2),
-		       "b" (a3),
-		       "D" (a4),
-		       "S" (a5)
+		       "a" (num),  //EAX
+		       "d" (a1),   //EDX
+		       "c" (a2),   //ECX
+		       "b" (a3),   //EBX
+		       "D" (a4),   //EDI
+		       "S" (a5)    //ESI
 		     : "cc", "memory");
 
-	if(check && ret > 0)
+	if(check && ret > 0){
+		//cprintf("The ret is %d\n",ret);
 		panic("syscall %d returned %d (> 0)", num, ret);
+	}
 
 	return ret;
 }

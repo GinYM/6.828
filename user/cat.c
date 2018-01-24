@@ -20,6 +20,8 @@ umain(int argc, char **argv)
 {
 	int f, i;
 
+	//cprintf("In cat.c\n");
+
 	binaryname = "cat";
 	if (argc == 1)
 		cat(0, "<stdin>");

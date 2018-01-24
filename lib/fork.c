@@ -25,6 +25,14 @@ pgfault(struct UTrapframe *utf)
 	//   (see <inc/memlayout.h>).
 
 	// LAB 4: Your code here.
+	//cprintf("err is %x\n",err);
+	//cprintf("uvpt is %x\n",uvpt[PGNUM(addr)]);
+	//cprintf("addr is %x\n",addr);
+	if((err&FEC_WR) ==0 || ((uvpt[PGNUM(addr)]&PTE_COW) ==0)){
+		panic("panic pgfault!");
+	}
+	//cprintf("Here???\n");
+	
 
 	// Allocate a new page, map it at a temporary location (PFTEMP),
 	// copy the data from the old page to the new page, then move the new
@@ -33,8 +41,27 @@ pgfault(struct UTrapframe *utf)
 	//   You should make three system calls.
 
 	// LAB 4: Your code here.
+	envid_t envid =	0;//sys_getenvid();
 
-	panic("pgfault not implemented");
+	//cprintf("envid is %d\n",envid);
+
+	addr = ROUNDDOWN(addr,PGSIZE);
+
+	if((r = sys_page_alloc(envid, PFTEMP, PTE_W|PTE_P|PTE_U)) <0 ){
+		panic("sys_page_alloc panic %e",r);
+	}
+	memcpy((void*)PFTEMP,addr,PGSIZE);
+
+	if((r = sys_page_map(envid, PFTEMP,envid, addr, PTE_W|PTE_P|PTE_U)) < 0){
+		panic("sys_page_map %e",r);
+	}
+
+	if((r = sys_page_unmap(envid, PFTEMP)) < 0){
+		panic("sys_page_map %e",r);
+	}
+
+
+	//panic("pgfault not implemented");
 }
 
 //
@@ -53,8 +80,52 @@ duppage(envid_t envid, unsigned pn)
 {
 	int r;
 
+	envid_t curenvid = sys_getenvid();
+	if(curenvid<0){
+		return curenvid;
+	}
+
 	// LAB 4: Your code here.
-	panic("duppage not implemented");
+	//panic("duppage not implemented");
+	//cprintf("Here!\n");
+	if(uvpt[pn]&PTE_SHARE){
+		//cprintf("perm is %d\n",uvpt[PGNUM(pn)] );
+		if ((r = sys_page_map(thisenv->env_id, (void*)(pn*PGSIZE), envid, (void*)(pn*PGSIZE), uvpt[pn] & PTE_SYSCALL)) < 0)
+			panic("sys_page_map fail: %e",r);
+		return 0;
+	}
+	
+	int perm;
+	if((uvpt[pn]&PTE_COW) !=0 || (uvpt[pn]&PTE_W) !=0 ){
+		
+		perm = PTE_P|PTE_U|PTE_COW;
+		
+		
+		if ((r = sys_page_map(thisenv->env_id, (void*)(pn*PGSIZE), envid, (void*)(pn*PGSIZE), perm)) < 0)
+			panic("sys_page_map fail: %e",r);
+		if ((r = sys_page_map(thisenv->env_id, (void*)(pn*PGSIZE), thisenv->env_id, (void*)(pn*PGSIZE), perm)) < 0)
+			panic("sys_page_map fail: %e",r);
+		
+	}
+	else{
+		//cprintf("Here??\n");
+		
+		perm = PTE_P|PTE_U;
+		
+		//perm = PTE_P|PTE_U;
+		if ((r = sys_page_map(thisenv->env_id, (void*)(pn*PGSIZE), envid, (void*)(pn*PGSIZE), perm)) < 0)
+			panic("sys_page_map fail: %e",r);
+		
+	}
+
+	//cprintf("parent envid %d child envid %d\n",curenvid,envid);
+
+	//if ((r = sys_page_map(thisenv->env_id, (void*)(pn*PGSIZE), envid, (void*)(pn*PGSIZE), perm)) < 0)
+	//	panic("sys_page_map fail: %e",r);
+	//if ((r = sys_page_map(thisenv->env_id, (void*)(pn*PGSIZE), thisenv->env_id, (void*)(pn*PGSIZE), perm)) < 0)
+	//	panic("sys_page_map fail: %e",r);
+	
+
 	return 0;
 }
 
@@ -78,7 +149,61 @@ envid_t
 fork(void)
 {
 	// LAB 4: Your code here.
-	panic("fork not implemented");
+	//panic("fork not implemented");
+	uint32_t addr;
+	int r;
+	set_pgfault_handler(pgfault);
+	envid_t child = sys_exofork();
+	//cprintf("Child is %d\n",child);
+	if(child<0){
+		panic("sys_exofork fails: %e",child);
+	}
+	if(child == 0){
+		thisenv = &envs[ENVX(sys_getenvid())];
+		return 0;
+	}
+
+
+	//uint32_t uvpt_addr;
+	//uint32_t uvpd_addr;
+	for (addr = 0; addr < UTOP-PGSIZE; addr += PGSIZE){
+		//uvpt_addr = uvpt[PGNUM(addr)];
+		//uvpd_addr = uvpd[PDX(addr)];
+
+		if( ( (uvpd[PDX(addr)]&PTE_P) && (uvpt[PGNUM(addr)]&PTE_P)  )){
+			//cprintf("uvpt_addr is %x\n",uvpt_addr);
+			//thisenv->env_pgdir = (pde_t *)uvpd[PDX(addr)];
+
+			//cprintf("uvpt_addr is %x\n",uvpt_addr);
+			//cprintf("uvpd_addr is %x\n",uvpd_addr);
+
+			//cprintf("pgnum is %x\n",PGNUM(addr));
+
+			if((r=duppage(child, PGNUM(addr))) < 0){
+				//cprintf("pgnum is %x\n",PGNUM(addr));
+				panic("duppage fail: %e",r);
+			}
+		}
+		
+	}
+	//cprintf("Finished\n");
+
+	//duppage(child);
+
+	if((r=sys_page_alloc(child, (void*)(UTOP-PGSIZE), PTE_P|PTE_U|PTE_W))<0){
+		panic("sys_page_alloc: %e",r);
+	}
+
+
+	if((r = sys_env_set_pgfault_upcall(child, thisenv->env_pgfault_upcall))<0){
+		panic("sys_env_set_pgfault_upcall: %e",r);
+	}
+
+	if ((r = sys_env_set_status(child, ENV_RUNNABLE)) < 0)
+		panic("sys_env_set_status: %e", r);
+
+
+	return child;
 }
 
 // Challenge!

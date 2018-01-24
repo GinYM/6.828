@@ -26,15 +26,23 @@ void
 duppage(envid_t dstenv, void *addr)
 {
 	int r;
+	//cprintf("Start!!!\n");
+	//cprintf("The addr of dstenv is %d\n",dstenv);
 
 	// This is NOT what you should do in your fork.
-	if ((r = sys_page_alloc(dstenv, addr, PTE_P|PTE_U|PTE_W)) < 0)
+	if ((r = sys_page_alloc(dstenv, addr, PTE_P|PTE_U|PTE_W)) < 0){
+		//cprintf("The r is %d\n",r);
 		panic("sys_page_alloc: %e", r);
+	}
+
+	cprintf("Test1!!!\n");
+
 	if ((r = sys_page_map(dstenv, addr, 0, UTEMP, PTE_P|PTE_U|PTE_W)) < 0)
 		panic("sys_page_map: %e", r);
 	memmove(UTEMP, addr, PGSIZE);
 	if ((r = sys_page_unmap(0, UTEMP)) < 0)
 		panic("sys_page_unmap: %e", r);
+	cprintf("Finished duppage!!!\n");
 }
 
 envid_t
@@ -51,6 +59,7 @@ dumbfork(void)
 	// except that in the child, this "fake" call to sys_exofork()
 	// will return 0 instead of the envid of the child.
 	envid = sys_exofork();
+	cprintf("Envid is: %d\n",envid);
 	if (envid < 0)
 		panic("sys_exofork: %e", envid);
 	if (envid == 0) {

@@ -208,15 +208,29 @@ read(int fdnum, void *buf, size_t n)
 	struct Dev *dev;
 	struct Fd *fd;
 
+	//cprintf("Here!\n");
+
 	if ((r = fd_lookup(fdnum, &fd)) < 0
 	    || (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
+	{
+		//cprintf("err is %d\n",r);
 		return r;
+	}
+
+	//cprintf("Here!\n");
+		
 	if ((fd->fd_omode & O_ACCMODE) == O_WRONLY) {
 		cprintf("[%08x] read %d -- bad mode\n", thisenv->env_id, fdnum);
 		return -E_INVAL;
 	}
+
+	//cprintf("Here!\n");
+
 	if (!dev->dev_read)
 		return -E_NOT_SUPP;
+
+	//cprintf("Here!\n");
+
 	return (*dev->dev_read)(fd, buf, n);
 }
 
@@ -227,11 +241,13 @@ readn(int fdnum, void *buf, size_t n)
 
 	for (tot = 0; tot < n; tot += m) {
 		m = read(fdnum, (char*)buf + tot, n - tot);
+		//cprintf("m is %d\n",m);
 		if (m < 0)
 			return m;
 		if (m == 0)
 			break;
 	}
+	//cprintf("tot is %d\n",tot);
 	return tot;
 }
 
