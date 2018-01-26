@@ -284,8 +284,10 @@ trap_dispatch(struct Trapframe *tf)
 			//tf->tf_regs.reg_eax = eax;
 			return;
 		case IRQ_OFFSET+IRQ_TIMER:
+			time_tick();
 			lapic_eoi();
 			sched_yield();
+			
 			return;
 
 		case IRQ_OFFSET+IRQ_SERIAL:
@@ -295,6 +297,9 @@ trap_dispatch(struct Trapframe *tf)
 		case IRQ_OFFSET+IRQ_KBD:
 			kbd_intr();
 			return;
+
+		default:
+			panic("unrecognize %e",tf->tf_trapno);
 	}
 
 	// Handle spurious interrupts
@@ -314,7 +319,7 @@ trap_dispatch(struct Trapframe *tf)
 	// Be careful! In multiprocessors, clock interrupts are
 	// triggered on every CPU.
 	// LAB 6: Your code here.
-
+	
 
 	// Handle keyboard and serial interrupts.
 	// LAB 5: Your code here.

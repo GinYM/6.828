@@ -124,3 +124,8 @@ sys_time_msec(void)
 {
 	return (unsigned int) syscall(SYS_time_msec, 0, 0, 0, 0, 0, 0);
 }
+
+int 
+sys_send_data_at(void *addr, uint16_t len){
+	return syscall(SYS_send_data_at,0,(uint32_t)addr,(uint32_t)len,0,0,0);
+}
