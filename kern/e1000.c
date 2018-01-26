@@ -9,12 +9,34 @@ packet_buffer tx_desc_buffers[NTXDESC];
 
 volatile uint32_t *attached_e1000;
 
+
+
+//default MAC address of 52:54:00:12:34:56
+void set_mac_addr(){
+	attached_e1000[RAL(0)] = 0x12005452;
+	attached_e1000[RAH(0)] = 0x80005634;
+	/*
+	set_ral0(0,0x52);
+	set_ral0(1,0x54);
+	set_ral0(2,0x00);
+	set_ral0(3,0x12);
+
+	
+	set_rah0(0,0x34);
+	set_rah0(1,0x56);
+	set_rah0(2,0);
+	set_rah0(3,0x80);
+	*/
+}
+
 int
 pci_attach_82540em(struct pci_func *f){
 	pci_func_enable(f);
 	attached_e1000 = mmio_map_region(f->reg_base[0], f->reg_size[0]);
 	//cprintf("The attached_e1000: %x\n",attached_e1000);
 	
+	//transmit initialization
+
 	//Allocate a region of memory for the transmit descriptor list. 
 	//Software should insure this memory is
 	//aligned on a paragraph (16-byte) boundary
@@ -27,17 +49,22 @@ pci_attach_82540em(struct pci_func *f){
 	//to the size (in bytes) of the descriptor ring
 	attached_e1000[TDLEN] = sizeof(tx_ring);
 
-	attached_e1000[TDH] = 0x0b;
-	attached_e1000[TDT] = 0x0b;
+	attached_e1000[TDH] = 0;
+	attached_e1000[TDT] = 0;
 
 	//Initialize the Transmit Control Register (TCTL)
 	// *Set the Enable (TCTL.EN) bit to 1b for normal operation.
-	attached_e1000[TCTL] = TCTL_EN(1)|TCTL_PSP(1)|TCTL_CT(0x10)|TCTL_COLD(0x40);
+	attached_e1000[TCTL] = TCTL_EN(1)
+		|TCTL_PSP(1)
+		|TCTL_CT(0x10)
+		|TCTL_COLD(0x40);
 
 
 	//Program the Transmit IPG (TIPG) register with the following decimal values to get the minimum
 	//legal Inter Packet Gap:
-	attached_e1000[TIPG] = TIPG_IPGT(0xA)|TIPG_IPGR1(0X8)|TIPG_IPGR2(0xC);
+	attached_e1000[TIPG] = TIPG_IPGT(0xA)
+		|TIPG_IPGR1(0X8)
+		|TIPG_IPGR2(0xC);
 
 	// init transmit descriptor ring
 	memset(tx_ring, 0, sizeof(tx_ring));
@@ -46,7 +73,24 @@ pci_attach_82540em(struct pci_func *f){
 		tx_ring[i].status = TDESC_STATUS_DD;
 	}
 
-	//send_data_at("hello",5);
+	//receive initialization
+	
+	//set MAC address
+	set_mac_addr();
+	memset((void*)&attached_e1000[MTA_BASE],0,MTA_SIZE);
+	attached_e1000[IMS] = 0;
+	attached_e1000[RDBAL] = PADDR(tx_ring);
+	attached_e1000[RDBAH] = 0;
+	attached_e1000[RDLEN] = sizeof(tx_ring);
+	attached_e1000[RDH] = PADDR(tx_ring);
+	attached_e1000[RDT] = PADDR(tx_ring+NRXDESC);
+	attached_e1000[RCTL] = RCTL_EN(1) 
+		| RCTL_LPE(0) 
+		| RCTL_LBM(0) 
+		| RCTL_BAM(1) 
+		| RCTL_BSIZE(0) 
+		| RCTL_SECRC(1);
+
 
 	return 0;
 }
