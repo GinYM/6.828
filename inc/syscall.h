@@ -19,7 +19,8 @@ enum {
 	SYS_ipc_recv,
 	SYS_time_msec,
 	NSYSCALLS,
-	SYS_send_data_at
+	SYS_send_data_at,
+	SYS_recv_data_at
 };
 
 #endif /* !JOS_INC_SYSCALL_H */

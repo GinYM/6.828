@@ -3,13 +3,16 @@
 
 #include <inc/types.h>
 #include <kern/pci.h>
-#include <kern/pmap.h>
+//#include <kern/pmap.h>
 #include <inc/string.h>
 
 
 #define NTXDESC 32
 #define NRXDESC 256
 #define PACKET_MAX_SIZE 1528
+
+#define TPACK_MAX_SIZE 1528
+#define RPACK_MAX_SIZE 2048
 
 typedef char packet_buffer[PACKET_MAX_SIZE];
 
@@ -38,6 +41,8 @@ typedef char packet_buffer[PACKET_MAX_SIZE];
 
 
 #define MTA_SIZE (128 * 4)
+
+
 
 #define RAL(i) (RAL_BASE + 8 * (i))
 #define RAH(i) (RAH_BASE + 8 * (i))
@@ -69,6 +74,9 @@ typedef char packet_buffer[PACKET_MAX_SIZE];
 #define TDESC_STATUS_DD 1
 #define TDESC_CMD_EOP 1
 
+#define RDESC_STATUS_DD  1
+#define RDESC_STATUS_EOP (1<<1)
+
 int pci_attach_82540em(struct pci_func *f);
 
 struct tx_desc
@@ -92,6 +100,13 @@ struct rx_desc
 	uint16_t special;
 } __attribute__ ((packed));
 
+struct rec_res{
+	int is_eop;
+	uint32_t nread;
+
+};
+
 int send_data_at(void *addr, uint16_t len);
+int recv_data_at(void *addr);
 
 #endif	// JOS_KERN_E1000_H

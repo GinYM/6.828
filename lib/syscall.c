@@ -129,3 +129,9 @@ int
 sys_send_data_at(void *addr, uint16_t len){
 	return syscall(SYS_send_data_at,0,(uint32_t)addr,(uint32_t)len,0,0,0);
 }
+
+int 
+sys_recv_data_at(void *addr){
+	return syscall(SYS_recv_data_at,0,(uint32_t)addr,0,0,0,0);
+}
+

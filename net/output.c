@@ -20,7 +20,7 @@ output(envid_t ns_envid)
 			void * data = nsipcbuf.pkt.jp_data;
 			int data_len = nsipcbuf.pkt.jp_len;
 			//cprintf("data: %c\n",(char*)data);
-			cprintf("data_len: %d\n",data_len);
+			//cprintf("data_len: %d\n",data_len);
 			r = sys_send_data_at(data,data_len);
 			if(r<0){
 				panic("output fails sys_send_data_at: %e",r);
